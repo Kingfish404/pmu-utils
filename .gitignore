@@ -1,0 +1,16 @@
+# build cache
+*.out
+*.o
+*.ko
+*.cmd
+*.dwo
+.tmp*
+*.mod
+*.mod.o
+*.mod.c
+modules.order
+Module.symvers
+
+# setting file
+*.ini
+*.log
