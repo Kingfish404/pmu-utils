@@ -28,7 +28,7 @@ arg_mrs_t* arg_mrs;
 
 MODULE_LICENSE("GPL");
 
-int TAR_CPU = 3;
+int TAR_CPU = 0;
 
 /* Kernel module hooks */
 static ssize_t msrdrv_read(struct file *f, char *b, size_t c, loff_t *o)

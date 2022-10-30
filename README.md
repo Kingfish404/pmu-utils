@@ -9,11 +9,17 @@
 
 ## Use
 
-```
-make enable
+```shell
+# usage: compile and enable (notice: if have enabled, it need to disable first)
+make clean && make
+# usage: disable
+make disable
+# test
+make test_asm
+make test_pmu
 ```
 
-如果要修改pmu读取的事件，修改msr-driver里usr_enable.c中的事件编码，并重新使能pmu，事件参考手册: https://perfmon-events.intel.com，部分参考[Skylake](./perfmon-events.md)
+如果要修改pmu读取的事件，修改`msr-driver`里`usr_enable.c`中的事件编码，并重新使能`pmu`，事件参考手册: https://perfmon-events.intel.com，部分参考[Skylake](./perfmon-events.md)
 
 ## Reference
 

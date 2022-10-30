@@ -37,20 +37,20 @@ static void closeDriver(int fd)
  */
 int main(int argc, char *argv[])
 {
-    unsigned long long pe1, pe2, pe3, pe4;
+    unsigned long long pe0, pe1, pe2, pe3;
     if (argc == 5)
     {
-        pe1 = atoll(argv[1]);
-        pe2 = atoll(argv[2]);
-        pe3 = atoll(argv[3]);
-        pe4 = atoll(argv[4]);
+        pe0 = atoll(argv[1]);
+        pe1 = atoll(argv[2]);
+        pe2 = atoll(argv[3]);
+        pe3 = atoll(argv[4]);
     }
     else
     {
+        pe0 = PMC0_EVENT;
         pe1 = PMC1_EVENT;
         pe2 = PMC2_EVENT;
         pe3 = PMC3_EVENT;
-        pe4 = PMC4_EVENT;
     }
     int fd;
 
@@ -63,10 +63,10 @@ int main(int argc, char *argv[])
         {MSR_WRITE, 0x309, 0x00, 0x00},  // ia32_fixed_ctr0: zero value (35-17)
         {MSR_WRITE, 0x30a, 0x00, 0x00},  // ia32_fixed_ctr1: zero value (35-17)
         {MSR_WRITE, 0x30b, 0x00, 0x00},  // ia32_fixed_ctr2: zero value (35-17)
-        {MSR_WRITE, 0x186, pe1, 0x00},   // ia32_perfevtsel1
-        {MSR_WRITE, 0x187, pe2, 0x00},   // ia32_perfevtsel0
-        {MSR_WRITE, 0x188, pe3, 0x00},   // ia32_perfevtsel2
-        {MSR_WRITE, 0x189, pe4, 0x00},   // ia32_perfevtsel3
+        {MSR_WRITE, 0x186, pe0, 0x00},   // ia32_perfevtsel1
+        {MSR_WRITE, 0x187, pe1, 0x00},   // ia32_perfevtsel0
+        {MSR_WRITE, 0x188, pe2, 0x00},   // ia32_perfevtsel2
+        {MSR_WRITE, 0x189, pe3, 0x00},   // ia32_perfevtsel3
         {MSR_WRITE, 0x38d, 0x222, 0x00}, // ia32_perf_fixed_ctr_ctrl: ensure 3 FFCs enabled
         {MSR_WRITE, 0x38f, 0x0f, 0x07},  // ia32_perf_global_ctrl: enable 4 PMCs & 3 FFCs
         {MSR_STOP, 0x00, 0x00}};
