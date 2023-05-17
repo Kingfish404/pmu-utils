@@ -1,0 +1,19 @@
+# for ide
+.vscode
+.idea
+
+# for temp file
+*tmp*
+
+# for compile output
+*.out
+*.o
+
+# for kernel module
+*.mk
+*.cmd
+*.ko
+*.mod.c
+*.mod.o
+Module.symvers
+modules.order
