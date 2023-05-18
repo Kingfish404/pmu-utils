@@ -29,4 +29,10 @@ clean:
 	rm -rf *.out
 
 test:
-	make clean && make && taskset -c 0 sudo ./basic.c.out
+	make clean 
+
+	$(CC) $(LIBC) basic.c -o basic.c.out $(CFLAGS)
+	$(CC) $(LIBC) all.c -o all.c.out $(CFLAGS)
+
+	taskset -c 0 sudo ./basic.c.out
+	taskset -c 0 sudo ./all.c.out

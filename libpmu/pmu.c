@@ -51,6 +51,14 @@ uint64_t pmu_event_to_hexcode(PMU_EVENT *event)
     return hexcode;
 }
 
+inline int pmu_open_msr(int core)
+{
+    core %= 512;
+    char msr_path[32];
+    sprintf(msr_path, "/dev/cpu/%d/msr", core);
+    return open(msr_path, O_RDWR);
+}
+
 inline void pmu_set_event(int core, int *msr_fd, uint64_t hexcode, size_t pmu_id)
 {
     core %= 512;
@@ -62,6 +70,15 @@ inline void pmu_set_event(int core, int *msr_fd, uint64_t hexcode, size_t pmu_id
 
     write_to_IA32_PERFEVTSELi(*msr_fd, pmu_id, hexcode);
     lseek(*msr_fd, 0x38F, SEEK_SET);
+}
+
+inline void pmu_set_msr_event(int msr_fd, uint64_t hexcode, size_t pmu_id)
+{
+    /* DISABLE ALL COUNTERS */
+    write_to_IA32_PERF_GLOBAL_CTRL(msr_fd, 0ull);
+
+    write_to_IA32_PERFEVTSELi(msr_fd, pmu_id, hexcode);
+    lseek(msr_fd, 0x38F, SEEK_SET);
 }
 
 inline void pmu_set_pmc(int msr_fd, size_t pmu_id, uint64_t val)

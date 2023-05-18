@@ -14,7 +14,7 @@ int main(int argc, char const *argv[])
     uint64_t pmc_bit_width = pmu_get_PMC_bit_width();
     printf("PMC_bit_width: \t%lu\n", pmc_bit_width);
 
-    int msr_fd, core = 0, pmu_id = 0;
+    int core = 0, pmu_id = 0;
     PMU_EVENT pe0 = {
         .event_code = 0xD1,
         .umask = 0x08,
@@ -31,7 +31,11 @@ int main(int argc, char const *argv[])
     uint64_t pe0_code = pmu_event_to_hexcode(&pe0);
     printf("Event Hexcode: \t0x%lx\n", pe0_code);
 
+    int msr_fd = pmu_open_msr(core);
+
     pmu_set_event(core, &msr_fd, pe0_code, pmu_id);
+    pmu_set_msr_event(msr_fd, pe0_code, pmu_id);
+
     pmu_set_pmc(msr_fd, pmu_id, 0);
     pmu_record_start(msr_fd);
     uint64_t start_pmu_value = pmu_get_MSR_pmc(msr_fd, pmu_id);

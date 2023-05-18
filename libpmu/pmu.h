@@ -30,7 +30,11 @@ typedef struct PMU_EVENT_STRUCT
 
 uint64_t pmu_event_to_hexcode(PMU_EVENT *event);
 
+int pmu_open_msr(int core);
+
 void pmu_set_event(int core, int *msr_fd, uint64_t hexcode, size_t pmu_id);
+
+void pmu_set_msr_event(int msr_fd, uint64_t hexcode, size_t pmu_id);
 
 void pmu_set_pmc(int msr_fd, size_t pmu_id, uint64_t val);
 
