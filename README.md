@@ -14,6 +14,20 @@ cd pmu-enable-driver && make && make inmod
 
 Refer to `tests` directory for more details about how to use the library. All the functions are defined in `libpmu/pmu.h`.
 
+```c
+uint64_t start_pmc, end_pmc;
+uint64_t hexcode = 0x410000, core = 0, pmu_id = 0;
+int msr_fd = pmu_open_msr(1);
+pmu_set_msr_event(msr_fd, hexcode, core);   // set event
+pmu_set_pmc(msr_fd, pmu_id, 0);             // set 0 for PMC0
+
+start_pmc = pmu_get_rdpmc(pmu_id);      // read PMC0
+/*
+   code that you want to measure
+*/
+end_pmc = pmu_get_rdpmc(pmu_id);        // read PMC0
+```
+
 ## Test and Example
 
 Seen in `tests` directory.

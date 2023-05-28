@@ -8,31 +8,21 @@ C_EXECUTABLE :=$(C_SOURCES:.c=.c.out)
 CPP_SOURCES :=$(wildcard *.cpp)
 CPP_EXECUTABLE :=$(CPP_SOURCES:.cpp=.cpp.out)
  
-all:$(C_EXECUTABLE) $(CPP_EXECUTABLE)
-
-%.c.out: %.c
-	$(CC) $(LIBC) $< -o $@ $(CFLAGS)
-
-%.cpp.out: %.cpp
-	$(CPP) $(LIBC) $< -o $@ $(CPPFLAGS)
-
-asm_c:
-	$(CC) -S $(CFLAGS) $(C_SOURCES)
-
-asm_cpp:
-	$(CPP) -S $(CPPFLAGS) $(CPP_SOURCES)
-
 clean:
 	rm -rf $(C_EXECUTABLE)
 	rm -rf $(CPP_EXECUTABLE)
 	rm -rf *.s
 	rm -rf *.out
 
-test:
+build:
 	make clean 
 
 	$(CC) $(LIBC) basic.c -o basic.c.out $(CFLAGS)
 	$(CC) $(LIBC) all.c -o all.c.out $(CFLAGS)
+	$(CC) $(LIBC) set_pmu.c -o set_pmu.c.out $(CFLAGS)
+	$(CC) header.c -o header.c.out $(CFLAGS)
 
+test:build
 	taskset -c 0 sudo ./basic.c.out
 	taskset -c 0 sudo ./all.c.out
+	taskset -c 0 sudo ./header.c.out
