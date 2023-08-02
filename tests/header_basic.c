@@ -3,7 +3,8 @@
 #include <assert.h>
 #include <math.h>
 #include "./../header/cache_utils.h"
-#include "./../libpmu/pmu.h"
+#include "./../header/pmu_utils.h"
+// #include "./../libpmu/pmu.h"
 
 char memory[1024];
 

@@ -10,6 +10,14 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
+enum PMU_CPU_Vendor
+{
+    CPU_VENDER_UNCHECK,
+    CPU_VENDOR_UNKNOWN,
+    CPU_VENDOR_INTEL,
+    CPU_VENDOR_AMD,
+};
+
 /*
     INTEL 64 and IA-32 Architectures Software Developer's Manual
     Figure 20-1. Layout of IA32_PERFEVTSELx MSRs

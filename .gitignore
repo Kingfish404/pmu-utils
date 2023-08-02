@@ -8,11 +8,13 @@
 # for compile output
 *.out
 *.o
+build
 
 # for kernel module
 *.mk
 *.cmd
 *.ko
+*.mod
 *.mod.c
 *.mod.o
 Module.symvers

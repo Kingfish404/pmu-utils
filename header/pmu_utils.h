@@ -10,6 +10,44 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
+enum PMU_CPU_Vendor
+{
+    CPU_VENDER_UNCHECK,
+    CPU_VENDOR_UNKNOWN,
+    CPU_VENDOR_INTEL,
+    CPU_VENDOR_AMD,
+};
+
+enum PMU_CPU_Vendor pmu_vender = CPU_VENDER_UNCHECK;
+
+enum PMU_CPU_Vendor pmu_get_cpu_vendor(void)
+{
+    if (pmu_vender != CPU_VENDER_UNCHECK)
+        return pmu_vender;
+
+    char vendor_str[13];
+    unsigned int eax, ebx, ecx, edx;
+    asm volatile("cpuid"
+                 : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+                 : "a"(0));
+    memcpy(vendor_str, &ebx, 4);
+    memcpy(vendor_str + 4, &edx, 4);
+    memcpy(vendor_str + 8, &ecx, 4);
+    if (strcmp(vendor_str, "GenuineIntel") == 0)
+    {
+        pmu_vender = CPU_VENDOR_INTEL;
+    }
+    else if (strcmp(vendor_str, "AuthenticAMD") == 0)
+    {
+        pmu_vender = CPU_VENDOR_AMD;
+    }
+    else
+    {
+        pmu_vender = CPU_VENDOR_INTEL;
+    }
+    return pmu_vender;
+}
+
 /*
     INTEL 64 and IA-32 Architectures Software Developer's Manual
     Figure 20-1. Layout of IA32_PERFEVTSELx MSRs
@@ -28,20 +66,48 @@ typedef struct PMU_EVENT_STRUCT
     uint32_t counter_mask;
 } PMU_EVENT;
 
-void write_to_IA32_PERFEVTSELi(int msr_fd, int i, uint64_t val)
+void write_to_x86_perf_eventi(int msr_fd, int i, uint64_t val)
 {
     size_t ret;
-    ret = pwrite(msr_fd, &val, sizeof(val), 0x186 + i);
+    switch (pmu_get_cpu_vendor())
+    {
+    case CPU_VENDOR_INTEL:
+        // 0x186 is the offset of IA32_PERFEVTSEL0 register
+        ret = pwrite(msr_fd, &val, sizeof(val), 0x186 + i);
+        break;
+    case CPU_VENDOR_AMD:
+        // C001_0000h is the offset of AMD64 PerfEvtSel0 register
+        ret = pwrite(msr_fd, &val, sizeof(val), 0xC0010000 + i);
+        break;
+    default:
+        break;
+    }
     if (!ret)
+    {
         printf("Pwrite error!\n");
+    }
 }
 
-void write_to_IA32_PMCi(int msr_fd, int i, uint64_t val)
+void write_to_x86_PMCi(int msr_fd, int i, uint64_t val)
 {
     size_t ret;
-    ret = pwrite(msr_fd, &val, sizeof(val), 0xC1 + i);
+    switch (pmu_get_cpu_vendor())
+    {
+    case CPU_VENDOR_INTEL:
+        // 0xC1 is the offset of IA32_PMC0 register
+        ret = pwrite(msr_fd, &val, sizeof(val), 0xC1 + i);
+        break;
+    case CPU_VENDOR_AMD:
+        // C001_0004h is the offset of AMD64 PerfCtr0 register
+        ret = pwrite(msr_fd, &val, sizeof(val), 0xC0010004 + i);
+        break;
+    default:
+        break;
+    }
     if (!ret)
+    {
         printf("Pwrite error!\n");
+    }
 }
 
 void write_to_IA32_PERF_GLOBAL_CTRL(int msr_fd, uint64_t val)
@@ -52,11 +118,20 @@ void write_to_IA32_PERF_GLOBAL_CTRL(int msr_fd, uint64_t val)
         printf("Pwrite error!\n");
 }
 
-uint64_t read_IA32_PMCi(int msr_fd, int i)
+uint64_t read_x86_PMCi(int msr_fd, int i)
 {
     uint64_t toret = -1;
     size_t ret;
-    ret = pread(msr_fd, &toret, sizeof(toret), 0xC1 + i);
+    switch (pmu_get_cpu_vendor())
+    {
+    case CPU_VENDOR_INTEL:
+        ret = pread(msr_fd, &toret, sizeof(toret), 0xC1 + i);
+        break;
+    case CPU_VENDOR_AMD:
+        ret = pread(msr_fd, &toret, sizeof(toret), 0xC0010004 + i);
+    default:
+        break;
+    }
     if (!ret)
         printf("Pread error!\n");
 
@@ -96,7 +171,7 @@ void pmu_set_event(int core, int *msr_fd, uint64_t hexcode, size_t pmu_id)
     /* DISABLE ALL COUNTERS */
     write_to_IA32_PERF_GLOBAL_CTRL(*msr_fd, 0ull);
 
-    write_to_IA32_PERFEVTSELi(*msr_fd, pmu_id, hexcode);
+    write_to_x86_perf_eventi(*msr_fd, pmu_id, hexcode);
     lseek(*msr_fd, 0x38F, SEEK_SET);
 }
 
@@ -105,23 +180,23 @@ void pmu_set_msr_event(int msr_fd, uint64_t hexcode, size_t pmu_id)
     /* DISABLE ALL COUNTERS */
     write_to_IA32_PERF_GLOBAL_CTRL(msr_fd, 0ull);
 
-    write_to_IA32_PERFEVTSELi(msr_fd, pmu_id, hexcode);
+    write_to_x86_perf_eventi(msr_fd, pmu_id, hexcode);
     lseek(msr_fd, 0x38F, SEEK_SET);
 }
 
 void pmu_set_pmc(int msr_fd, size_t pmu_id, uint64_t val)
 {
-    write_to_IA32_PMCi(msr_fd, pmu_id, val);
+    write_to_x86_PMCi(msr_fd, pmu_id, val);
 }
 
 void pmu_record_start(int msr_fd)
 {
     uint64_t val = 15ull | (7ull << 32);
-    asm("mov %[write],     %%eax;"
-        "mov %[fd],        %%edi;"
-        "mov %[val],       %%rsi;"
-        "mov $8,           %%edx;"
-        "syscall;"
+    asm("mov %[write],     %%eax\n"
+        "mov %[fd],        %%edi\n"
+        "mov %[val],       %%rsi\n"
+        "mov $8,           %%edx\n"
+        "syscall\n"
         :
         : [write] "i"(SYS_write),
           [val] "r"(&val),
@@ -132,11 +207,11 @@ void pmu_record_start(int msr_fd)
 void pmu_record_stop(int msr_fd)
 {
     uint64_t val = 0;
-    asm("mov %[write],     %%eax;"
-        "mov %[fd],        %%edi;"
-        "mov %[val],       %%rsi;"
-        "mov $8,           %%edx;"
-        "syscall;"
+    asm("mov %[write],     %%eax\n"
+        "mov %[fd],        %%edi\n"
+        "mov %[val],       %%rsi\n"
+        "mov $8,           %%edx\n"
+        "syscall\n"
         :
         : [write] "i"(SYS_write),
           [val] "r"(&val),
@@ -146,16 +221,26 @@ void pmu_record_stop(int msr_fd)
 
 uint64_t pmu_get_MSR_pmc(int msr_fd, size_t pmu_id)
 {
-    return read_IA32_PMCi(msr_fd, pmu_id);
+    return read_x86_PMCi(msr_fd, pmu_id);
 }
 
 uint64_t pmu_get_rdpmc(int pmu_id)
 {
     uint32_t lo, hi;
     asm volatile(
-        "mfence\n\t"
-        "rdpmc\n\t"
-        "mfence\n\t"
+        "rdpmc\n"
+        : "=a"(lo), "=d"(hi)
+        : "c"(pmu_id));
+    return ((uint64_t)hi << 32 | lo);
+}
+
+uint64_t pmu_get_rdpmc_mfence(int pmu_id)
+{
+    uint32_t lo, hi;
+    asm volatile(
+        "mfence\n"
+        "rdpmc\n"
+        "mfence\n"
         : "=a"(lo), "=d"(hi)
         : "c"(pmu_id));
     return ((uint64_t)hi << 32 | lo);
@@ -163,33 +248,58 @@ uint64_t pmu_get_rdpmc(int pmu_id)
 
 uint64_t pmu_get_MSRs_num()
 {
-    uint32_t eax;
-    asm volatile(
-        "cpuid"
-        : "=a"(eax)
-        : "a"(0x0A)
-        :);
-    uint64_t num = (eax & 0xFF00) >> 8;
+    uint32_t reg;
+    uint64_t num = 0;
+    switch (pmu_get_cpu_vendor())
+    {
+    case CPU_VENDOR_INTEL:
+        asm volatile(
+            "cpuid"
+            : "=a"(reg)
+            : "a"(0x0A)
+            :);
+        num = (reg & 0xFF00) >> 8;
+        break;
+    case CPU_VENDOR_AMD:
+        asm volatile(
+            "cpuid"
+            : "=c"(reg)
+            : "a"(0x80000001)
+            :);
+        num = 4 * ((reg >> 24) && 0x1);
+        num += 2 * ((reg >> 23) & 0x1);
+        break;
+    default:
+        break;
+    }
     return num;
 }
 
 uint64_t pmu_get_PMC_bit_width()
 {
     uint32_t eax;
-    asm volatile(
-        "cpuid"
-        : "=a"(eax)
-        : "a"(0x0A)
-        :);
-    uint64_t bit_width = (eax & 0xFF0000) >> 16;
+    uint64_t bit_width = 0;
+    switch (pmu_get_cpu_vendor())
+    {
+    case CPU_VENDOR_INTEL:
+        asm volatile(
+            "cpuid"
+            : "=a"(eax)
+            : "a"(0x0A)
+            :);
+        bit_width = (eax & 0xFF0000) >> 16;
+        break;
+    case CPU_VENDOR_AMD:
+        bit_width = 64;
+    default:
+        break;
+    }
     return bit_width;
 }
 
 #define PMU_GET_RDPMC(pmu_id, lo, hi) \
     asm volatile(                     \
-        "mfence\n\t"                  \
-        "rdpmc\n\t"                   \
-        "mfence\n\t"                  \
+        "rdpmc\n"                     \
         : "=a"(lo), "=d"(hi)          \
         : "c"(pmu_id));
 

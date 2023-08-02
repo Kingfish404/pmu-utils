@@ -1,4 +1,4 @@
-# PMU Enable Driver
+# PMU Enable Driver for Linux
 
 Set CR4.bit8 to 1 to enable `RDPMC` instruction.
 
