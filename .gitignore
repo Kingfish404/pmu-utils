@@ -4,6 +4,9 @@
 
 # for temp file
 *tmp*
+*.json
+__pycache__
+/scripts/pmu-events
 
 # for compile output
 *.out
