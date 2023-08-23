@@ -72,10 +72,10 @@ typedef struct PMU_INTEL_EVENT_STRUCT
 */
 typedef struct PMU_AMD_EVENT_STRUCT
 {
-    uint32_t event_select;
-    uint32_t unit_mask;
-    uint8_t counter_enable;
-    uint8_t interrupt_enable;
+    uint64_t event_select;
+    uint64_t unit_mask;
+    uint64_t counter_enable;
+    uint64_t interrupt_enable;
 } PMU_EVENT_AMD;
 
 void write_to_x86_perf_eventi(int msr_fd, int i, uint64_t val)
