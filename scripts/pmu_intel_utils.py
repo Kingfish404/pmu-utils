@@ -1,7 +1,6 @@
 import os
 import json
-
-pmu_events_filename = "this-cpu-pmu-events.json"
+from program_utils import pmu_events_filename
 
 def event_to_hexs(event):
     hexs = []
@@ -31,7 +30,7 @@ def event_to_hexs(event):
         hexs.append(hex_str)
     return hexs
 
-def get_docu_pmu_dict():
+def get_doc_pmu_dict():
     if not os.path.exists(pmu_events_filename):
         from pmu_intel_event_download import main
         main()
@@ -43,3 +42,8 @@ def get_docu_pmu_dict():
             for hex_code in hexs:
                 pmu_umask_event[hex_code] = event
     return pmu_umask_event
+
+if __name__ == "__main__":
+    pmu_dict = get_doc_pmu_dict()
+    for key in pmu_dict:
+        print(key, pmu_dict[key])

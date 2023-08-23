@@ -52,7 +52,7 @@ enum PMU_CPU_Vendor pmu_get_cpu_vendor(void)
     INTEL 64 and IA-32 Architectures Software Developer's Manual
     Figure 20-1. Layout of IA32_PERFEVTSELx MSRs
 */
-typedef struct PMU_EVENT_STRUCT
+typedef struct PMU_INTEL_EVENT_STRUCT
 {
     uint32_t event_code;
     uint32_t umask;
@@ -65,6 +65,18 @@ typedef struct PMU_EVENT_STRUCT
     uint32_t invert;
     uint32_t counter_mask;
 } PMU_EVENT;
+
+/*
+    AMD64 Architecture Programmer’s Manual Volumes 1–5
+    Figure 13-17. L2 Cache Performance Event-Select Register (L2I_PerfEvtSeln)
+*/
+typedef struct PMU_AMD_EVENT_STRUCT
+{
+    uint32_t event_select;
+    uint32_t unit_mask;
+    uint8_t counter_enable;
+    uint8_t interrupt_enable;
+} PMU_EVENT_AMD;
 
 void write_to_x86_perf_eventi(int msr_fd, int i, uint64_t val)
 {
@@ -151,6 +163,17 @@ uint64_t pmu_event_to_hexcode(PMU_EVENT *event)
     hexcode |= event->enable_couters << 22;
     hexcode |= event->invert << 23;
     hexcode |= event->counter_mask << 24;
+    return hexcode;
+}
+
+uint64_t pmu_amd_event_to_hexcode(PMU_EVENT_AMD *event)
+{
+    uint64_t hexcode = 0;
+    hexcode |= event->event_select & 0xFF;
+    hexcode |= (event->unit_mask & 0xFF) << 8;
+    hexcode |= (event->interrupt_enable & 0x1) << 20;
+    hexcode |= (event->counter_enable & 0x1) << 22;
+    hexcode |= (event->event_select & 0xF00) << 32;
     return hexcode;
 }
 

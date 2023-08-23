@@ -5,34 +5,11 @@ from urllib.error import URLError
 import os
 import string
 from fnmatch import fnmatch
+from program_utils import getfile, get_cpustr, pmu_events_filename
 
 urlpath = os.environ.get('PERFMONDIR', 'https://raw.githubusercontent.com/intel/perfmon/main')
 mapfile = 'mapfile.csv'
 modelpath = urlpath + "/" + mapfile
-
-def get_cpustr():
-    cpuinfo = os.getenv("CPUINFO")
-    if cpuinfo is None:
-        cpuinfo = '/proc/cpuinfo'
-    f = open(cpuinfo, 'r')
-    cpu = [None, None, None, None]
-    for j in f:
-        n = j.split()
-        if n[0] == 'vendor_id':
-            cpu[0] = n[2]
-        elif n[0] == 'model' and n[1] == ':':
-            cpu[2] = int(n[2])
-        elif n[0] == 'cpu' and n[1] == 'family':
-            cpu[1] = int(n[3])
-        elif n[0] == 'stepping' and n[1] == ':':
-            cpu[3] = int(n[2])
-        if all(v is not None for v in cpu):
-            break
-    # stepping for SKX only
-    stepping = cpu[0] == "GenuineIntel" and cpu[1] == 6 and cpu[2] == 0x55
-    if stepping:
-        return "%s-%d-%X-%X" % tuple(cpu)
-    return "%s-%d-%X" % tuple(cpu)[:3]
 
 def sanitize(s, a):
     o = ""
@@ -63,25 +40,6 @@ def getdir():
         raise Exception('Cannot access ' + d)
 
 NUM_TRIES = 3
-
-def getfile(url, dirfn, fn):
-    tries = 0
-    print("Downloading", url, "to", fn)
-    while True:
-        try:
-            f = urlopen(url)
-            data = f.read()
-        except IOError:
-            tries += 1
-            if tries >= NUM_TRIES:
-                raise
-            print("retrying download")
-            continue
-        break
-    o = open(os.path.join(dirfn, fn), "wb")
-    o.write(data)
-    o.close()
-    f.close()
 
 printed = set()
 
@@ -272,8 +230,8 @@ def main():
         print("my event list", el)
     
     import shutil
-    shutil.copy(el, "./this-cpu-pmu-events.json", follow_symlinks=True)
-    print("copied %s to ./this-cpu-pmu-events.json" % (el,))
+    shutil.copy(el, ("./%s" % (pmu_events_filename,)), follow_symlinks=True)
+    print("copied %s to ./%s" % (el,pmu_events_filename))
     shutil.copytree(d , "./pmu-events", symlinks=True)
     print("copied %s to ./pmu-events" % (d,))
 

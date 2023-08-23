@@ -118,6 +118,17 @@ uint64_t pmu_event_to_hexcode(PMU_EVENT *event)
     return hexcode;
 }
 
+uint64_t pmu_amd_event_to_hexcode(PMU_EVENT_AMD *event)
+{
+    uint64_t hexcode = 0;
+    hexcode |= event->event_select & 0xFF;
+    hexcode |= (event->unit_mask & 0xFF) << 8;
+    hexcode |= (event->interrupt_enable & 0x1) << 20;
+    hexcode |= (event->counter_enable & 0x1) << 22;
+    hexcode |= (event->event_select & 0xF00) << 32;
+    return hexcode;
+}
+
 int pmu_open_msr(int core)
 {
     core %= 512;
