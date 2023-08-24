@@ -5,10 +5,25 @@ from program_utils import pmu_events_filename
 def event_to_hexcode(event):
     event_select = int(event["EventCode"], 16) if (event.get("EventCode", "") != "") else 0
     unit_mask = int(event["UMask"], 16) if (event.get('UMask', "") != "") else 0
+    user_mode = 1
+    os_mode = 1
+    edge_detect = 0
+    interrupt_enable = 1
+    counter_enable = 1
+    invert = 0
+    counter_mask = 0
+    hg_only = 0
+    
     hex_num = (unit_mask << 8) + (event_select & 0xFF)
-    hex_num += (1 << 20) # Interrupt enable
-    hex_num += (1 << 22) # Counter Enable
-    hex_num += (event_select & 0xF00) << 32
+    hex_num |= (user_mode << 16)
+    hex_num |= (os_mode << 17)
+    hex_num |= (edge_detect << 18)
+    hex_num |= (interrupt_enable << 20)
+    hex_num |= (counter_enable << 22)
+    hex_num |= (invert << 23)
+    hex_num |= ((counter_mask & 0xFF) << 24) 
+    hex_num |= (event_select & 0xF00) << 32
+    hex_num |= ((hg_only & 0x3) << 40)
     return "0x%x" % hex_num
 
 def get_doc_pmu_dict():

@@ -123,9 +123,17 @@ uint64_t pmu_amd_event_to_hexcode(PMU_EVENT_AMD *event)
     uint64_t hexcode = 0;
     hexcode |= event->event_select & 0xFF;
     hexcode |= (event->unit_mask & 0xFF) << 8;
+    hexcode |= (event->user_mode & 0x1) << 16;
+    hexcode |= (event->os_mode & 0x1) << 17;
+    hexcode |= (event->edge_detect & 0x1) << 18;
+
     hexcode |= (event->interrupt_enable & 0x1) << 20;
+
     hexcode |= (event->counter_enable & 0x1) << 22;
+    hexcode |= (event->invert & 0x1) << 23;
+    hexcode |= (event->counter_mask & 0xFF) << 24;
     hexcode |= (event->event_select & 0xF00) << 32;
+    hexcode |= (event->hg_only & 0x3) << 40;
     return hexcode;
 }
 

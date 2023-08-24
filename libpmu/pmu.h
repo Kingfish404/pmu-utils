@@ -38,14 +38,20 @@ typedef struct PMU_EVENT_STRUCT
 
 /*
     AMD64 Architecture Programmer’s Manual Volumes 1–5
-    Figure 13-17. L2 Cache Performance Event-Select Register (L2I_PerfEvtSeln)
+    Figure 13-11. Core Performance Event-Select Register (PerfEvtSeln)
 */
 typedef struct PMU_AMD_EVENT_STRUCT
 {
     uint64_t event_select;
-    uint64_t unit_mask;
-    uint64_t counter_enable;
-    uint64_t interrupt_enable;
+    uint32_t unit_mask;
+    uint32_t user_mode;
+    uint32_t os_mode;
+    uint32_t edge_detect;
+    uint32_t interrupt_enable;
+    uint32_t counter_enable;
+    uint32_t invert;
+    uint32_t counter_mask;
+    uint64_t hg_only;
 } PMU_EVENT_AMD;
 
 uint64_t pmu_event_to_hexcode(PMU_EVENT *event);

@@ -68,14 +68,20 @@ typedef struct PMU_INTEL_EVENT_STRUCT
 
 /*
     AMD64 Architecture Programmer’s Manual Volumes 1–5
-    Figure 13-17. L2 Cache Performance Event-Select Register (L2I_PerfEvtSeln)
+    Figure 13-11. Core Performance Event-Select Register (PerfEvtSeln)
 */
 typedef struct PMU_AMD_EVENT_STRUCT
 {
     uint64_t event_select;
-    uint64_t unit_mask;
-    uint64_t counter_enable;
-    uint64_t interrupt_enable;
+    uint32_t unit_mask;
+    uint32_t user_mode;
+    uint32_t os_mode;
+    uint32_t edge_detect;
+    uint32_t interrupt_enable;
+    uint32_t counter_enable;
+    uint32_t invert;
+    uint32_t counter_mask;
+    uint64_t hg_only;
 } PMU_EVENT_AMD;
 
 void write_to_x86_perf_eventi(int msr_fd, int i, uint64_t val)
@@ -171,9 +177,17 @@ uint64_t pmu_amd_event_to_hexcode(PMU_EVENT_AMD *event)
     uint64_t hexcode = 0;
     hexcode |= event->event_select & 0xFF;
     hexcode |= (event->unit_mask & 0xFF) << 8;
+    hexcode |= (event->user_mode & 0x1) << 16;
+    hexcode |= (event->os_mode & 0x1) << 17;
+    hexcode |= (event->edge_detect & 0x1) << 18;
+
     hexcode |= (event->interrupt_enable & 0x1) << 20;
+
     hexcode |= (event->counter_enable & 0x1) << 22;
+    hexcode |= (event->invert & 0x1) << 23;
+    hexcode |= (event->counter_mask & 0xFF) << 24;
     hexcode |= (event->event_select & 0xF00) << 32;
+    hexcode |= (event->hg_only & 0x3) << 40;
     return hexcode;
 }
 
