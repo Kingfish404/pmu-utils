@@ -4,7 +4,7 @@ import csv
 import datetime
 import json
 import platform
-from program_utils import getfile, get_cpustr, pmu_events_filename
+from program_utils import getfile, get_cpustr, pmu_events_filename, run_command
 
 urlpath = 'https://raw.githubusercontent.com/torvalds/linux/master/tools/perf/pmu-events/arch/x86/'
 pmu_data_path = './pmu-events'
@@ -34,8 +34,12 @@ def main():
     with open(model_file, 'r', newline='') as csvfile:
         spamreader = csv.reader(csvfile)
         for row in spamreader:
-            pattern = row[0].replace('[[:xdigit:]]', '[0-9a-fA-F]')
-            if re.match(pattern, cpustr):
+            output, error = run_command('echo "%s" | grep -Po \'^%s\'' % (cpustr, row[0],))
+            error = error.strip()
+            output = output.strip()
+            if error:
+                print("Error: " + error)
+            elif output == cpustr:
                 model = row
                 break
     assert model is not None
@@ -58,7 +62,6 @@ def main():
             data = json.load(f)
         print("File: "+pfile)
         for event in data:
-            print(event)
             ecode = event.get('EventCode', "")
             umask = event.get('UMask', "")
             tcode = umask+ecode
