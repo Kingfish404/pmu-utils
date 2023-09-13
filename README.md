@@ -9,6 +9,7 @@ Currently, only Linux is supported. The library does not rely on any other libra
 Install `pmu-enable-driver`, set CR4.bit8 to 1 to enable `RDPMC` instruction.
 
 ```shell
+modprobe msr   # load msr module, privilege required
 cd pmu-enable-driver && make && make inmod
 ```
 
