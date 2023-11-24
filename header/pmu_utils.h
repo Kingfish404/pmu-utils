@@ -271,18 +271,6 @@ uint64_t pmu_get_rdpmc(int pmu_id)
     return ((uint64_t)hi << 32 | lo);
 }
 
-uint64_t pmu_get_rdpmc_mfence(int pmu_id)
-{
-    uint32_t lo, hi;
-    asm volatile(
-        "mfence\n"
-        "rdpmc\n"
-        "mfence\n"
-        : "=a"(lo), "=d"(hi)
-        : "c"(pmu_id));
-    return ((uint64_t)hi << 32 | lo);
-}
-
 uint64_t pmu_get_MSRs_num()
 {
     uint32_t reg;

@@ -40,7 +40,7 @@ int main(int argc, char const *argv[])
     pmu_set_pmc(msr_fd, pmu_id, 0);
     pmu_record_start(msr_fd);
     uint64_t start_pmu_value = pmu_get_MSR_pmc(msr_fd, pmu_id);
-    uint64_t start_pmu_value_rdpmc = pmu_get_rdpmc_mfence(pmu_id);
+    uint64_t start_pmu_value_rdpmc = pmu_get_rdpmc(pmu_id);
     asm volatile("mfence\n\t");
 
     for (int i = 0; i < sizeof(memory); i++)

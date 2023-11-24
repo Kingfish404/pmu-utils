@@ -43,6 +43,10 @@ int main(int argc, char const *argv[])
     pmu_record_stop(msr_fd);
 
     printf("pmu-utils all test function passed\n");
+    printf("pmu_val_msr: %lu\n", pmu_val_msr);
+    printf("pmu_val: %lu\n", pmu_val);
+    printf("msrs_num: %lu\n", msrs_num);
+    printf("pmc_bit_width: %lu\n", pmc_bit_width);
 
     return 0;
 }
