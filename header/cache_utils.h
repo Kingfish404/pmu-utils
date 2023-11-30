@@ -773,7 +773,8 @@ size_t get_physical_address(size_t vaddr)
   uint64_t virtual_addr = (uint64_t)vaddr;
   size_t value = 0;
   off_t offset = (virtual_addr / 4096) * sizeof(value);
-  pread(fd, &value, sizeof(value), offset);
+  int ret = pread(fd, &value, sizeof(value), offset);
+  assert(ret == sizeof(value));
   close(fd);
   return (value << 12) | ((size_t)vaddr & 0xFFFULL);
 }
