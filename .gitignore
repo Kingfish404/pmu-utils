@@ -22,3 +22,6 @@ build
 *.mod.o
 Module.symvers
 modules.order
+
+# for build output
+header/*_event.h

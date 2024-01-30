@@ -7,9 +7,12 @@ import string
 from fnmatch import fnmatch
 from program_utils import getfile, get_cpustr, pmu_events_filename
 
-urlpath = os.environ.get('PERFMONDIR', 'https://raw.githubusercontent.com/intel/perfmon/main')
-mapfile = 'mapfile.csv'
+urlpath = os.environ.get(
+    "PERFMONDIR", "https://raw.githubusercontent.com/intel/perfmon/main"
+)
+mapfile = "mapfile.csv"
 modelpath = urlpath + "/" + mapfile
+
 
 def sanitize(s, a):
     o = ""
@@ -17,6 +20,7 @@ def sanitize(s, a):
         if j in a:
             o += j
     return o
+
 
 def getdir():
     try:
@@ -37,14 +41,17 @@ def getdir():
             os.makedirs(d)
         return d
     except OSError:
-        raise Exception('Cannot access ' + d)
+        raise Exception("Cannot access " + d)
+
 
 printed = set()
+
 
 def warn_once(msg):
     if msg not in printed:
         print(msg, file=sys.stderr)
         printed.add(msg)
+
 
 def cpu_without_step(match):
     if match.count("-") < 3:
@@ -52,9 +59,13 @@ def cpu_without_step(match):
     n = match.split("-")
     return "%s-%s-%s" % tuple(n[:3])
 
-allowed_chars = string.ascii_letters + '_-.' + string.digits
-def parse_map_file(match, key=None, link=True, onlyprint=False,
-                   acceptfile=False, hybridkey=None):
+
+allowed_chars = string.ascii_letters + "_-." + string.digits
+
+
+def parse_map_file(
+    match, key=None, link=True, onlyprint=False, acceptfile=False, hybridkey=None
+):
     match2 = cpu_without_step(match)
     files = []
     dirfn = getdir()
@@ -82,8 +93,12 @@ def parse_map_file(match, key=None, link=True, onlyprint=False,
                     print("Cannot parse", n)
                 continue
             cpu, version, name, typ = n[:4]
-            if not (fnmatch(cpu, match) or fnmatch(cpu, match2) or
-                    fnmatch(match2, cpu) or fnmatch(match, cpu)):
+            if not (
+                fnmatch(cpu, match)
+                or fnmatch(cpu, match2)
+                or fnmatch(match2, cpu)
+                or fnmatch(match, cpu)
+            ):
                 continue
             if key is not None and typ not in key:
                 continue
@@ -96,7 +111,11 @@ def parse_map_file(match, key=None, link=True, onlyprint=False,
                 matchfn = cpu
             if ".json" not in matchfn:
                 if hybridkey:
-                    fn = "%s-%s-%s.json" % (matchfn, sanitize(typ, allowed_chars), hybridkey)
+                    fn = "%s-%s-%s.json" % (
+                        matchfn,
+                        sanitize(typ, allowed_chars),
+                        hybridkey,
+                    )
                 else:
                     fn = "%s-%s.json" % (matchfn, sanitize(typ, allowed_chars))
             path = os.path.join(dirfn, fn)
@@ -117,15 +136,15 @@ def parse_map_file(match, key=None, link=True, onlyprint=False,
                     continue
                 try:
                     fn = fn.replace("01234", "4")
-                    fn = fn.replace("56789ABCDEF", "5") # XXX
+                    fn = fn.replace("56789ABCDEF", "5")  # XXX
                     getfile(url, dirfn, fn)
                 except URLError as e:
                     print("error accessing %s: %s" % (url, e), file=sys.stderr)
-                    if match == '*':
+                    if match == "*":
                         continue
                     raise
             if link:
-                lname = re.sub(r'.*/', '', name)
+                lname = re.sub(r".*/", "", name)
                 lname = sanitize(lname, allowed_chars)
                 try:
                     os.remove(os.path.join(dirfn, lname))
@@ -138,29 +157,43 @@ def parse_map_file(match, key=None, link=True, onlyprint=False,
             files.append(fn)
         models.close()
         for file_name in ["README.md", "LICENSE"]:
-            if not onlyprint and not os.path.exists(os.path.join(dirfn, file_name)) and not mfn:
+            if (
+                not onlyprint
+                and not os.path.exists(os.path.join(dirfn, file_name))
+                and not mfn
+            ):
                 getfile(urlpath + "/" + file_name, dirfn, file_name)
     except URLError as e:
         print("Cannot access event server:", e, file=sys.stderr)
-        warn_once("""
+        warn_once(
+            """
 If you need a proxy to access the internet please set it with:
 \texport https_proxy=http://proxyname...
 If you are not connected to the internet please run this on a connected system:
 \tevent_download.py '%s'
 and then copy ~/.cache/pmu-events to the system under test
 To get events for all possible CPUs use:
-\tevent_download.py -a""" % match)
+\tevent_download.py -a"""
+            % match
+        )
     except OSError as e:
         print("Cannot write events file:", e, file=sys.stderr)
     return files
 
+
 def download(match, key=None, link=True, onlyprint=False, acceptfile=False):
     return len(parse_map_file(match, key, link, onlyprint, acceptfile))
 
+
 def download_current(link=False, onlyprint=False):
     """Download JSON event list for current cpu.
-       Returns >0 when a event list is found"""
-    return download(get_cpustr(), link=link, onlyprint=onlyprint, )
+    Returns >0 when a event list is found"""
+    return download(
+        get_cpustr(),
+        link=link,
+        onlyprint=onlyprint,
+    )
+
 
 def eventlist_name(name=None, key="core", hybridkey=None):
     if not name:
@@ -192,18 +225,31 @@ def eventlist_name(name=None, key="core", hybridkey=None):
             fn = files[0]
     return fn
 
+
 def main():
     # only import argparse when actually called from command line
     # this makes ocperf work on older python versions without it.
     import argparse
-    p = argparse.ArgumentParser(usage='download Intel event files')
-    p.add_argument('--all', '-a', help='Download all available event files', action='store_true')
-    p.add_argument('--verbose', '-v', help='Be verbose', action='store_true')
-    p.add_argument('--mine', help='Print name of current CPU', action='store_true')
-    p.add_argument('--link', help='Create links with the original event file name', action='store_true', default=True)
-    p.add_argument('--print', help='Print file names of all event files instead of downloading. Requires existing mapfile.csv.',
-                   dest='print_', action='store_true')
-    p.add_argument('cpus', help='CPU identifiers to download', nargs='*')
+
+    p = argparse.ArgumentParser(usage="download Intel event files")
+    p.add_argument(
+        "--all", "-a", help="Download all available event files", action="store_true"
+    )
+    p.add_argument("--verbose", "-v", help="Be verbose", action="store_true")
+    p.add_argument("--mine", help="Print name of current CPU", action="store_true")
+    p.add_argument(
+        "--link",
+        help="Create links with the original event file name",
+        action="store_true",
+        default=True,
+    )
+    p.add_argument(
+        "--print",
+        help="Print file names of all event files instead of downloading. Requires existing mapfile.csv.",
+        dest="print_",
+        action="store_true",
+    )
+    p.add_argument("cpus", help="CPU identifiers to download", nargs="*")
     args = p.parse_args()
 
     if args.verbose or args.mine:
@@ -212,7 +258,7 @@ def main():
         sys.exit(0)
     d = getdir()
     if args.all:
-        found = download('*', link=args.link, onlyprint=args.print_)
+        found = download("*", link=args.link, onlyprint=args.print_)
     elif len(args.cpus) == 0:
         found = download_current(link=args.link, onlyprint=args.print_)
     else:
@@ -226,13 +272,14 @@ def main():
     el = eventlist_name()
     if os.path.exists(el) and not args.print_:
         print("my event list", el)
-    
+
     import shutil
+
     shutil.copy(el, ("./%s" % (pmu_events_filename,)), follow_symlinks=True)
-    print("copied %s to ./%s" % (el,pmu_events_filename))
-    shutil.copytree(d , "./pmu-events", symlinks=True)
+    print("copied %s to ./%s" % (el, pmu_events_filename))
+    shutil.copytree(d, "./pmu-events", symlinks=True)
     print("copied %s to ./pmu-events" % (d,))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
