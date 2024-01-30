@@ -2,6 +2,7 @@ import os
 from urllib.request import urlopen
 import subprocess
 
+NUM_TRIES = 3
 pmu_events_filename = "this-cpu-pmu-events.json"
 
 def get_cpustr():

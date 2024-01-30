@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <assert.h>
 #include <math.h>
-#include "./../header/cache_utils.h"
+#include "cache_utils.h"
 #include "./../header/pmu_utils.h"
 
 int main(int argc, char const *argv[])

@@ -2,9 +2,9 @@
 #include <stdint.h>
 #include <assert.h>
 #include <math.h>
-#include "./../header/cache_utils.h"
+#include "cache_utils.h"
 #include "./../header/pmu_utils.h"
-// #include "./../libpmu/pmu.h"
+// #include "pmu.h"
 
 char memory[1024];
 

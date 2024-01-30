@@ -39,8 +39,6 @@ def getdir():
     except OSError:
         raise Exception('Cannot access ' + d)
 
-NUM_TRIES = 3
-
 printed = set()
 
 def warn_once(msg):

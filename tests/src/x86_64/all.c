@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <assert.h>
 #include <math.h>
-#include "./../header/cache_utils.h"
-#include "./../libpmu/pmu.h"
+#include "cache_utils.h"
+#include "pmu.h"
 
 int main(int argc, char const *argv[])
 {
