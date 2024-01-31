@@ -5,4 +5,4 @@ pmu_utils: module/pmu_utils.c
 all: pmu_utils
 
 format:
-	black scripts
+	python3 -m black scripts

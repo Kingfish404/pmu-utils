@@ -47,7 +47,46 @@ def get_doc_pmu_dict():
     return pmu_umask_event
 
 
+def export_c_header():
+    pmu_dict = get_doc_pmu_dict()
+    header_path = "../header/"
+    header_file_name = "ia64_pmu_event.h"
+    header_file_path = os.path.join(header_path, header_file_name)
+    with open(header_file_path, "w+") as f:
+        f.write("#ifndef IA64_PMU_EVENT_H\n")
+        f.write("#define IA64_PMU_EVENT_H\n\n")
+
+        f.write("#include <stdint.h>\n\n")
+
+        for key in pmu_dict:
+            pmu_event = pmu_dict[key]
+            print(key, pmu_dict[key])
+            f.write("// {}\n".format(pmu_event["PublicDescription"]))
+            f.write(
+                "#define IA64_PME_{} {}\n\n".format(pmu_event["EventName"].upper(), key)
+            )
+
+        f.write(
+            """
+typedef struct
+{
+    char *event_name;
+    uint64_t event_code;
+} IA64_pmu_event;
+
+const IA64_pmu_event pmu_events[] = {\n"""
+        )
+        for key in pmu_dict:
+            pmu_event = pmu_dict[key]
+            print(key, pmu_dict[key])
+            f.write('    {{"{}", {}}},\n'.format(pmu_event["EventName"].upper(), key))
+        f.write("};\n")
+
+        f.write("\n#endif /* IA64_PMU_EVENT_H */\n")
+
+
 if __name__ == "__main__":
     pmu_dict = get_doc_pmu_dict()
+    export_c_header()
     for key in pmu_dict:
         print(key, pmu_dict[key])

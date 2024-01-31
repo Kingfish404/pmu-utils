@@ -68,7 +68,7 @@ pmu_values[1] = pmu_get_rdpmc(1) - pmu_values[1];
 Seen in `tests` directory.
 
 ```shell
-cd tests && mkdir build && cmake .. && make tests
+cd tests && mkdir -p build && cd build && cmake .. && make tests
 ```
 
 ## References or Related

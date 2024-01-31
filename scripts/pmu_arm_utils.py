@@ -42,7 +42,7 @@ def export_c_header():
             print(hex(key), pmu_dict[key])
             f.write("// {}\n".format(pmu_event["PublicDescription"]))
             f.write(
-                "#define ARM_PME_{} {}\n".format(
+                "#define ARM_PME_{} {}\n\n".format(
                     pmu_event["EventName"].upper(), hex(key)
                 )
             )
@@ -54,6 +54,7 @@ typedef struct
     char *event_name;
     uint64_t event_code;
 } arm_pmu_event;
+
 const arm_pmu_event pmu_events[] = {\n"""
         )
         for key in pmu_dict:
