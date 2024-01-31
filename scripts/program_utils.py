@@ -1,9 +1,52 @@
 import os
-from urllib.request import urlopen
 import subprocess
+from urllib.request import urlopen
+from typing import List
 
 NUM_TRIES = 3
 pmu_events_filename = "this-cpu-pmu-events.json"
+header_path = "../header/"
+
+
+class PMUEvent:
+    def __init__(self, value, name, desc="") -> None:
+        self.value = value
+        self.name = name
+        self.desc = desc
+
+
+def export_header(
+    pmu_events: List[PMUEvent], filename: str, arch: str, path: str = header_path
+):
+    header_file_path = os.path.join(path, filename)
+    with open(header_file_path, "w+") as f:
+        f.write("#ifndef {}_PMU_EVENT_H\n".format(arch.upper()))
+        f.write("#define {}_PMU_EVENT_H\n\n".format(arch.upper()))
+
+        f.write("#include <stdint.h>\n\n")
+
+        for event in pmu_events:
+            if event.desc != "":
+                f.write("// {}\n".format(event.desc))
+            f.write(
+                "#define {}_PME_{} {}\n\n".format(arch.upper(), event.name, event.value)
+            )
+
+        f.write(
+            f"""
+typedef struct
+{{
+    char *event_name;
+    uint64_t event_code;
+}} {arch.upper()}_pmu_event;
+
+const {arch.upper()}_pmu_event pmu_events[] = {{\n"""
+        )
+        for event in pmu_events:
+            f.write('    {{"{}", {}}},\n'.format(event.name, event.value))
+        f.write("};\n")
+
+        f.write("\n#endif /* {}_PMU_EVENT_H */\n".format(arch.upper()))
 
 
 def get_cpustr():

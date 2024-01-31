@@ -12,7 +12,7 @@ Preparation:
 # Building the kernel module requires the kernel headers of the kernel. On Ubuntu or Debian, they can be installed by running
 sudo apt install linux-headers-$(uname -r)
 
-# Both the library and the the kernel module can be build by running
+# The kernel module can be built by running
 make
 
 # The resulting kernel module can be loaded using
@@ -71,11 +71,17 @@ Seen in `tests` directory.
 cd tests && mkdir -p build && cd build && cmake .. && make tests
 ```
 
-## References or Related
+## Script Utils
+
+Change the directory to `scripts` and run `*utils.py` for your architecture.
+
+## References
 - [Intel® 64 and IA-32 Architectures Software Developer Manuals](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
 - [AMD64 Architecture Programmer's Manual, Volumes 1-5 | AMD](https://www.amd.com/en/support/tech-docs/amd64-architecture-programmers-manual-volumes-1-5)
+- [Arm A-profile A64 Instruction Set Architecture](https://developer.arm.com/documentation/ddi0602/latest)
+- [Specifications – RISC-V International](https://riscv.org/technical/specifications/)
 - [misc0110/PTEditor: A small library to modify all page-table levels of all processes from user space for x86_64 and ARMv8.](https://github.com/misc0110/PTEditor)
 - [mattferroni/msr-driver: A simple kernel module to read MSRs on Intel machines.](https://github.com/mattferroni/msr-driver)
 - [IAIK/transientfail: Website and PoC collection for transient execution attacks](https://github.com/IAIK/transientfail)
-- [PerfMon Events](https://perfmon-events.intel.com/#)
+- [andikleen/pmu-tools: Intel PMU profiling tools](https://github.com/andikleen/pmu-tools)
 - [dadaKh/pmu-reader: PMU-reader for Linux](https://github.com/dadaKh/pmu-reader)

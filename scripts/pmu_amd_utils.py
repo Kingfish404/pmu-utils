@@ -1,6 +1,7 @@
 import os
 import json
-from program_utils import pmu_events_filename
+from program_utils import pmu_events_filename, export_header, PMUEvent
+from typing import List
 
 
 def event_to_hexcode(event):
@@ -45,7 +46,23 @@ def get_doc_pmu_dict():
     return pmu_umask_event
 
 
+def export_c_header(pmu_dict):
+    pmu_events: List[PMUEvent] = []
+    for key in pmu_dict:
+        pmu_event = pmu_dict[key]
+        event_name = (
+            pmu_event["EventName"]
+            if pmu_event.get("EventName", "") != ""
+            else pmu_event["MetricName"]
+        )
+        pmu_events.append(
+            PMUEvent(key, event_name, pmu_event.get("BriefDescription", ""))
+        )
+    export_header(pmu_events, "amd64_pmu_event.h", "AMD64")
+
+
 if __name__ == "__main__":
     pmu_dict = get_doc_pmu_dict()
+    export_c_header(pmu_dict)
     for key in pmu_dict:
         print(key, pmu_dict[key])
