@@ -4,7 +4,6 @@
 #include <math.h>
 #include "cache_utils.h"
 #include "./../header/pmu_utils.h"
-// #include "pmu.h"
 
 char memory[1024];
 

@@ -29,7 +29,9 @@ def export_header(
             if event.desc != "":
                 f.write("// {}\n".format(event.desc))
             f.write(
-                "#define {}_PME_{} {}\n\n".format(arch.upper(), event.name, event.value)
+                "#define {}_PME_{} {}\n\n".format(
+                    arch.upper(), event.name, event.value
+                ).replace(".", "__")
             )
 
         f.write(

@@ -6,6 +6,7 @@ import os
 import string
 from fnmatch import fnmatch
 from program_utils import getfile, get_cpustr, pmu_events_filename
+from pathlib import Path
 
 urlpath = os.environ.get(
     "PERFMONDIR", "https://raw.githubusercontent.com/intel/perfmon/main"
@@ -250,7 +251,11 @@ def main():
         action="store_true",
     )
     p.add_argument("cpus", help="CPU identifiers to download", nargs="*")
+    p.add_argument(
+        "--hybridcore", help="is hybrid core", action="store_true", default=False
+    )
     args = p.parse_args()
+    print(args)
 
     if args.verbose or args.mine:
         print(get_cpustr())
@@ -269,15 +274,19 @@ def main():
     if found == 0 and not args.print_:
         print("Nothing found", file=sys.stderr)
 
-    el = eventlist_name()
+    key = "core" if args.hybridcore == False else "hybridcore"
+    el = eventlist_name(key=key)
     if os.path.exists(el) and not args.print_:
         print("my event list", el)
 
     import shutil
 
-    shutil.copy(el, ("./%s" % (pmu_events_filename,)), follow_symlinks=True)
+    d = getdir()
+    fillpath = Path(d).joinpath(el)
+    shutil.copy(fillpath, ("./%s" % (pmu_events_filename,)), follow_symlinks=True)
     print("copied %s to ./%s" % (el, pmu_events_filename))
-    shutil.copytree(d, "./pmu-events", symlinks=True)
+    if not os.path.exists("./pmu-events"):
+        shutil.copytree(d, "./pmu-events", symlinks=True)
     print("copied %s to ./pmu-events" % (d,))
 
 

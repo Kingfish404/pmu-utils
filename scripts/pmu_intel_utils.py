@@ -53,14 +53,11 @@ def export_c_header(pmu_dict):
     for key in pmu_dict:
         pmu_event = pmu_dict[key]
         event_name = pmu_event["EventName"]
-        pmu_events.append(
-            PMUEvent(key, event_name, pmu_event["PublicDescription"])
-        )
+        pmu_events.append(PMUEvent(key, event_name, pmu_event["PublicDescription"]))
 
     export_header(pmu_events, "ia64_pmu_event.h", "IA64")
+
 
 if __name__ == "__main__":
     pmu_dict = get_doc_pmu_dict()
     export_c_header(pmu_dict)
-    for key in pmu_dict:
-        print(key, pmu_dict[key])

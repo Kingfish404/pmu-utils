@@ -4,6 +4,16 @@
 
 Currently, only Linux is supported. The library does not rely on any other library. It uses only standard C functionality.
 
+## Features
+- Support for x86_64 chips (Intel `ia64` and AMD `amd64`) and ARM (`aarch64`) chips.
+- Support for reading and writing to the MSR register of the Performance Monitoring Unit (PMU).
+- Support for reading and writing the Performance Monitoring Counter (PMC) value.
+- Support for reading the Performance Monitoring Event (PME).
+   - For x86_64 `ia64` chips, the PME is getting from the [intel/perfmon](https://github.com/intel/perfmon)
+   - For x86_64 `amd64` and `aarch64` chips, the PME is getting from the Linux Perf tool.
+
+Read the following sections for more details.
+
 ## Linux Usage
 
 Preparation:
@@ -20,10 +30,19 @@ sudo insmod module/pmu_utils.ko
 
 # Additionally step for x86_64 chips machines
 sudo modprobe msr   # load msr module
+
+# build the PMU Event Header for x86-64 chips (for `ia64` and `amd64` architectures), or for ARM chips
+cd scripts
+python3 pmu_intel_utils.py # for x86-64 ia64 chips
+python3 pmu_intel_utils.py --hybridcore # if chips have hybrid core
+python3 pmu_amd_utils.py   # for x86-64 amd64 chips
+python3 pmu_arm_utils.py   # for ARM chips
+# then you could see the PMU header: `ia64_pmu_event.h`, `amd64_pmu_event.h`, or `arm_pmu_event.h`
+# just include the header in your c or c++ project
 ```
 
 Using the library:  
-Refer to `tests` directory for more details about how to use the library. All the functions are defined in `libpmu/pmu.h`.
+Refer to the `tests` directory for more details about how to use the library. All the functions are defined in `libpmu/pmu.h`.
 
 ```c
 #include <pmu_utils.h>
@@ -34,16 +53,16 @@ Refer to `tests` directory for more details about how to use the library. All th
 ```c
 uint64_t start_pmc = 0, end_pmc = 0;
 uint64_t hexcode = 0x410000, core = 0, pmc_id = 0;
-int msr_fd = pmu_open_msr(core);             // open msr
-pmu_set_msr_event(msr_fd, hexcode, core);    // set event
-pmu_record_start(msr_fd);                    // start record
-pmu_set_pmc(msr_fd, pmc_id, 0);              // set 0 for PMC[pmc_id]
+int msr_fd = pmu_open_msr(core); // open msr
+pmu_set_msr_event(msr_fd, hexcode, core); // set event
+pmu_record_start(msr_fd); // start record
+pmu_set_pmc(msr_fd, pmc_id, 0); // set 0 for PMC[pmc_id]
 
-start_pmc = pmu_get_rdpmc(pmc_id);        // read PMC[pmc_id]
+start_pmc = pmu_get_rdpmc(pmc_id); // read PMC[pmc_id]
 /*
-   code that you want to measure
+ code that you want to measure
 */
-end_pmc = pmu_get_rdpmc(pmc_id);          // read PMC[pmc_id]
+end_pmc = pmu_get_rdpmc(pmc_id); // read PMC[pmc_id]
 ```
 
 ### For aarch64 chips
