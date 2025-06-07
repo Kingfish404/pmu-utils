@@ -2,6 +2,7 @@
 #ifndef _LIBPMU_PMU_H
 #define _LIBPMU_PMU_H
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -9,6 +10,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/syscall.h>
+#include <sys/syscall.h>
+#include <sys/ioctl.h>
+#include <linux/perf_event.h>
 
 enum PMU_CPU_Vendor
 {
@@ -16,6 +20,8 @@ enum PMU_CPU_Vendor
     CPU_VENDOR_UNKNOWN,
     CPU_VENDOR_INTEL,
     CPU_VENDOR_AMD,
+    CPU_VENDOR_ARM,
+    CPU_VENDOR_RISCV
 };
 
 /*
@@ -53,6 +59,8 @@ typedef struct PMU_AMD_EVENT_STRUCT
     uint32_t counter_mask;
     uint64_t hg_only;
 } PMU_EVENT_AMD;
+
+void perf_init();
 
 uint64_t pmu_event_to_hexcode(PMU_EVENT *event);
 

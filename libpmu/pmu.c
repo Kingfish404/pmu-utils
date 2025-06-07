@@ -7,9 +7,10 @@ enum PMU_CPU_Vendor pmu_get_cpu_vendor(void)
     if (pmu_vender != CPU_VENDER_UNCHECK)
         return pmu_vender;
 
+#ifdef __x86_64__
     char vendor_str[13];
     unsigned int eax, ebx, ecx, edx;
-    asm volatile("cpuid"
+    asm volatile("cpuid\n\t"
                  : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
                  : "a"(0));
     memcpy(vendor_str, &ebx, 4);
@@ -27,6 +28,13 @@ enum PMU_CPU_Vendor pmu_get_cpu_vendor(void)
     {
         pmu_vender = CPU_VENDOR_INTEL;
     }
+#elif defined(__aarch64__) || defined(__arm__)
+    pmu_vender = CPU_VENDOR_ARM;
+#elif defined(__riscv) || defined(__riscv_64) || defined(__riscv_32)
+    pmu_vender = CPU_VENDOR_RISCV;
+#else
+    printk(KERN_INFO "Not implemented for unknown architecture");
+#endif
     return pmu_vender;
 }
 
@@ -100,6 +108,26 @@ uint64_t read_x86_PMCi(int msr_fd, int i)
         printf("Pread error!\n");
 
     return toret;
+}
+
+static size_t perf_fd;
+
+void perf_init()
+{
+    static struct perf_event_attr attr;
+    attr.type = PERF_TYPE_HARDWARE;
+    attr.config = PERF_COUNT_HW_CPU_CYCLES;
+    attr.size = sizeof(attr);
+    attr.exclude_kernel = 1;
+    attr.exclude_hv = 1;
+#if !defined(__i386__)
+    attr.exclude_callchain_kernel = 1;
+#endif
+
+    perf_fd = syscall(__NR_perf_event_open, &attr, 0, -1, -1, 0);
+    assert(perf_fd >= 0);
+
+    ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
 }
 
 uint64_t pmu_event_to_hexcode(PMU_EVENT *event)

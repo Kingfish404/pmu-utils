@@ -2,6 +2,7 @@
 #ifndef _LIBPMU_PMU_H
 #define _LIBPMU_PMU_H
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -9,6 +10,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/syscall.h>
+#include <sys/ioctl.h>
+#include <linux/perf_event.h>
 
 enum PMU_CPU_Vendor
 {
@@ -20,9 +23,9 @@ enum PMU_CPU_Vendor
     CPU_VENDOR_RISCV
 };
 
-enum PMU_CPU_Vendor pmu_vender = CPU_VENDER_UNCHECK;
+static enum PMU_CPU_Vendor pmu_vender = CPU_VENDER_UNCHECK;
 
-enum PMU_CPU_Vendor pmu_get_cpu_vendor(void)
+static enum PMU_CPU_Vendor pmu_get_cpu_vendor(void)
 {
     if (pmu_vender != CPU_VENDER_UNCHECK)
         return pmu_vender;
@@ -93,6 +96,26 @@ typedef struct PMU_AMD_EVENT_STRUCT
     uint32_t counter_mask;
     uint64_t hg_only;
 } PMU_EVENT_AMD;
+
+static size_t perf_fd;
+
+void perf_init()
+{
+    static struct perf_event_attr attr;
+    attr.type = PERF_TYPE_HARDWARE;
+    attr.config = PERF_COUNT_HW_CPU_CYCLES;
+    attr.size = sizeof(attr);
+    attr.exclude_kernel = 1;
+    attr.exclude_hv = 1;
+#if !defined(__i386__)
+    attr.exclude_callchain_kernel = 1;
+#endif
+
+    perf_fd = syscall(__NR_perf_event_open, &attr, 0, -1, -1, 0);
+    assert(perf_fd >= 0);
+
+    ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
+}
 
 void write_to_x86_perf_eventi(int msr_fd, int i, uint64_t val)
 {

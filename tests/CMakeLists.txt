@@ -34,6 +34,14 @@ elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64")
         COMMAND taskset -c 0 sudo ./test_header
     )
 elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "riscv64")
-    message("RISC-V is not supported yet")
+    set (SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/riscv64)
+    add_executable(test_perf ${SRC_DIR}/perf.c)
+    add_executable(test_header ${SRC_DIR}/header.c)
+    add_custom_target(tests
+        DEPENDS test_header
+        DEPENDS test_perf
+        COMMAND taskset -c 0 sudo ./test_perf
+        COMMAND taskset -c 0 sudo ./test_header
+    )
 else()
 endif()

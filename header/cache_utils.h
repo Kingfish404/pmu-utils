@@ -1,147 +1,36 @@
+#pragma once
 #ifndef _CACHEUTILS_H_
 #define _CACHEUTILS_H_
 
 #include <assert.h>
-#include <unistd.h>
-#include <sys/syscall.h>
-#include <linux/perf_event.h>
-#include <sys/ioctl.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <signal.h>
-#include <setjmp.h>
-#include <sched.h>
 #include <fcntl.h>
-#include <time.h>
-#include <string.h>
+#include <sched.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/syscall.h>
+#include <time.h>
+#include <unistd.h>
 
 #if defined(__x86_64__)
-// ---------------------------------------------------------------------------
-uint64_t rdtsc();
-
-// ---------------------------------------------------------------------------
-uint64_t rdtsc_begin();
-
-// ---------------------------------------------------------------------------
-uint64_t rdtsc_end();
-
-// ---------------------------------------------------------------------------
-void flush(void *p);
-
-// ---------------------------------------------------------------------------
-void maccess(void *p);
-
-// ---------------------------------------------------------------------------
-void mfence();
-
-// ---------------------------------------------------------------------------
-void nospec();
-
-// ---------------------------------------------------------------------------
-unsigned int xbegin();
-
-// ---------------------------------------------------------------------------
-void xend();
-
-// ---------------------------------------------------------------------------
-int has_tsx();
-
-// ---------------------------------------------------------------------------
-void maccess_tsx(void *ptr);
 
 #elif defined(__i386__)
-// ---------------------------------------------------------------------------
-uint32_t rdtsc();
-
-// ---------------------------------------------------------------------------
-void flush(void *p);
-
-// ---------------------------------------------------------------------------
-void maccess(void *p);
-
-// ---------------------------------------------------------------------------
-void mfence();
-
-// ---------------------------------------------------------------------------
-void nospec();
 
 #include <cpuid.h>
-// ---------------------------------------------------------------------------
-int has_tsx();
 
 #elif defined(__aarch64__)
+
 #if ARM_CLOCK_SOURCE == ARM_CLOCK_MONOTONIC
 #include <time.h>
-#endif
-
-// ---------------------------------------------------------------------------
-uint64_t rdtsc();
-
-// ---------------------------------------------------------------------------
-uint64_t rdtsc_begin();
-
-// ---------------------------------------------------------------------------
-uint64_t rdtsc_end();
-
-// ---------------------------------------------------------------------------
-void flush(void *p);
-
-// ---------------------------------------------------------------------------
-void maccess(void *p);
-
-// ---------------------------------------------------------------------------
-void mfence();
-
-// ---------------------------------------------------------------------------
-void nospec();
-
-#elif defined(__riscv)
-
-// ---------------------------------------------------------------------------
-uint64_t rdtsc();
-
-// ---------------------------------------------------------------------------
-void flush(void *p);
-
-// ---------------------------------------------------------------------------
-void maccess(void *p);
-
-// ---------------------------------------------------------------------------
-void mfence();
-
-// ---------------------------------------------------------------------------
-void sfence();
-
-// ---------------------------------------------------------------------------
-void ifence();
-
-#elif defined(__PPC64__)
-#include <sys/platform/ppc.h>
-uint64_t rdtsc();
-
-// ---------------------------------------------------------------------------
-uint64_t rdtsc_begin();
-
-// ---------------------------------------------------------------------------
-uint64_t rdtsc_end();
-
-// ---------------------------------------------------------------------------
-void flush(void *p);
-
-// ---------------------------------------------------------------------------
-void maccess(void *p);
-
-// ---------------------------------------------------------------------------
-void mfence();
-
-// ---------------------------------------------------------------------------
-void nospec();
-#endif
-
 #define ARM_PERF 1
 #define ARM_CLOCK_MONOTONIC 2
 #define ARM_TIMER 3
+#endif
+#endif
 
 /* ============================================================
  *                    User configuration
@@ -159,29 +48,9 @@ size_t CACHE_MISS = 150;
  * ============================================================ */
 
 // ---------------------------------------------------------------------------
-static size_t perf_fd;
 jmp_buf trycatch_buf;
-static size_t pagesize = 0;
+size_t pagesize = 0;
 char *mem;
-
-// ---------------------------------------------------------------------------
-void perf_init()
-{
-  static struct perf_event_attr attr;
-  attr.type = PERF_TYPE_HARDWARE;
-  attr.config = PERF_COUNT_HW_CPU_CYCLES;
-  attr.size = sizeof(attr);
-  attr.exclude_kernel = 1;
-  attr.exclude_hv = 1;
-#if !defined(__i386__)
-  attr.exclude_callchain_kernel = 1;
-#endif
-
-  perf_fd = syscall(__NR_perf_event_open, &attr, 0, -1, -1, 0);
-  assert(perf_fd >= 0);
-
-  // ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
-}
 
 #if defined(__x86_64__)
 // ---------------------------------------------------------------------------
@@ -199,7 +68,7 @@ uint64_t rdtsc()
   return a;
 }
 
-uint64_t inline rdtscp()
+uint64_t rdtscp()
 {
   register uint64_t a, d;
   asm volatile("rdtscp" : "=a"(a), "=d"(d)::"rcx");
@@ -242,19 +111,25 @@ uint64_t rdtsc_end()
 }
 
 // ---------------------------------------------------------------------------
-void inline flush(void *p) { asm volatile("clflush 0(%0)\n" : : "c"(p) : "rax"); }
+void flush(void *p)
+{
+  asm volatile("clflush 0(%0)\n" : : "c"(p) : "rax");
+}
 
 // ---------------------------------------------------------------------------
-void inline maccess(void *p) { asm volatile("movq (%0), %%rax\n" : : "c"(p) : "rax"); }
+void maccess(void *p)
+{
+  asm volatile("movq (%0), %%rax\n" : : "c"(p) : "rax");
+}
 
 // ---------------------------------------------------------------------------
-void inline mfence() { asm volatile("mfence"); }
+void mfence() { asm volatile("mfence"); }
 
 // ---------------------------------------------------------------------------
-void inline lfence() { asm volatile("lfence"); }
+void lfence() { asm volatile("lfence"); }
 
 // ---------------------------------------------------------------------------
-void inline sfence() { asm volatile("sfence"); }
+void sfence() { asm volatile("sfence"); }
 
 // ---------------------------------------------------------------------------
 void nospec() { asm volatile("lfence"); }
@@ -263,15 +138,15 @@ void nospec() { asm volatile("lfence"); }
 unsigned int xbegin()
 {
   unsigned status;
-  asm volatile(".byte 0xc7,0xf8,0x00,0x00,0x00,0x00" : "=a"(status) : "a"(-1UL) : "memory");
+  asm volatile(".byte 0xc7,0xf8,0x00,0x00,0x00,0x00"
+               : "=a"(status)
+               : "a"(-1UL)
+               : "memory");
   return status;
 }
 
 // ---------------------------------------------------------------------------
-void xend()
-{
-  asm volatile(".byte 0x0f; .byte 0x01; .byte 0xd5" ::: "memory");
-}
+void xend() { asm volatile(".byte 0x0f; .byte 0x01; .byte 0xd5" ::: "memory"); }
 
 #include <cpuid.h>
 // ---------------------------------------------------------------------------
@@ -501,23 +376,27 @@ uint64_t rdtsc()
   return val;
 }
 
-// ---------------------------------------------------------------------------
-void flush(void *p)
+uint64_t rdtime()
 {
-  asm volatile("fence.i");
+  uint64_t val;
+  asm volatile("rdtime %0" : "=r"(val));
+  return val;
 }
+
+// ---------------------------------------------------------------------------
+void flush(void *p) { asm volatile("fence.i"); }
 
 // ---------------------------------------------------------------------------
 void maccess(void *p) { asm volatile("lw t0, 0(%0)" ::"r"(p) : "t0"); }
 
 // ---------------------------------------------------------------------------
-void inline mfence() { asm volatile("fence"); }
+void mfence() { asm volatile("fence"); }
 
 // ---------------------------------------------------------------------------
-void inline sfence() { asm volatile("fence"); }
+void sfence() { asm volatile("fence"); }
 
 // ---------------------------------------------------------------------------
-void inline ifence() { asm volatile("fence.i"); }
+void ifence() { asm volatile("fence.i"); }
 
 #elif defined(__PPC64__)
 #include <sys/platform/ppc.h>
@@ -525,7 +404,8 @@ uint64_t rdtsc()
 {
   uint64_t time;
   asm volatile("mfspr %0, 268\n\t"
-               "lwsync\n\t" : "=r"(time));
+               "lwsync\n\t"
+               : "=r"(time));
 
   return time;
 }
@@ -535,7 +415,8 @@ uint64_t rdtsc_begin()
 {
   uint64_t time;
   asm volatile("mfspr %0, 268\n\t"
-               "lwsync\n\t" : "=r"(time));
+               "lwsync\n\t"
+               : "=r"(time));
 
   return time;
 }
@@ -545,16 +426,22 @@ uint64_t rdtsc_end()
 {
   uint64_t time;
   asm volatile("mfspr %0, 268\n\t"
-               "lwsync\n\t" : "=r"(time));
+               "lwsync\n\t"
+               : "=r"(time));
 
   return time;
 }
 
 // ---------------------------------------------------------------------------
-void flush(void *p) { asm volatile("dcbf 0, %0\n\t"
-                                   "dcs\n\t"
-                                   "ics\n\t"
-                                   : : "r"(p) :); }
+void flush(void *p)
+{
+  asm volatile("dcbf 0, %0\n\t"
+               "dcs\n\t"
+               "ics\n\t"
+               :
+               : "r"(p)
+               :);
+}
 
 // ---------------------------------------------------------------------------
 void maccess(void *p) { asm volatile("ld %%r0, 0(%0)" ::"r"(p) : "r0"); }
@@ -789,10 +676,7 @@ void cache_init()
 }
 
 // ---------------------------------------------------------------------------
-void cache_encode(char data)
-{
-  maccess(mem + data * pagesize);
-}
+void cache_encode(char data) { maccess(mem + data * pagesize); }
 
 // ---------------------------------------------------------------------------
 void cache_decode_pretty(char *leaked, int index)
