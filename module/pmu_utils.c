@@ -7,6 +7,10 @@
 #include <linux/version.h>
 #endif
 
+#if defined(__riscv)
+#include <asm/sbi.h>
+#endif
+
 #define PMU_DEVICE_NAME "pmu_utils"
 #define PMU_DEVICE_PATH "/dev/" PMU_DEVICE_NAME
 
@@ -91,7 +95,10 @@ static void enable_pmu(void *info)
     val = BIT(27);
     asm volatile("msr pmccfiltr_el0, %0" : : "r"(val));
 #elif defined(__riscv)
-    asm volatile("csrsi mcounteren, 0x7");
+    struct sbiret r;
+    r = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, 0x0,
+                  0x7, SBI_PMU_START_FLAG_SET_INIT_VALUE, 0, 0, 0);
+    asm volatile("csrsi scounteren, 0x7");
 #else
     pr_info("Not implemented for unknown architecture");
 #endif
@@ -126,7 +133,10 @@ static void disable_pmu(void *info)
     val &= ~(1);
     asm volatile("msr pmuserenr_el0, %0" : : "r"(val));
 #elif defined(__riscv)
-    pr_info("Not implemented for riscv");
+    struct sbiret r;
+    r = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_COUNTER_START, 0x0,
+                  0x0, SBI_PMU_START_FLAG_SET_INIT_VALUE, 0, 0, 0);
+    asm volatile("csrsi scounteren, 0x7");
 #else
     pr_info("Not implemented for unknown architecture");
 #endif

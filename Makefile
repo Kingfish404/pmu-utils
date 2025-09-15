@@ -8,10 +8,16 @@ load: pmu_utils
 	sudo insmod module/pmu_utils.ko
 
 unload:
-	sudo rmmod pmu_utils
+	-sudo rmmod pmu_utils
 
 clean:
 	make -C module clean
+
+test:
+	make -C tests ctest
+
+test_verbose:
+	make -C tests ctest_verbose
 
 format:
 	python3 -m black scripts

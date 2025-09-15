@@ -1,43 +1,61 @@
-#include <cache_utils.h>
-#include <linux/perf_event.h>
-#include <pmu_utils.h>
 #include <stdio.h>
+#include <pmu_utils.h>
+#include <cache_utils.h>
+
+#include <string.h>
+#include <linux/perf_event.h>
 #include <sys/ioctl.h>
-#include <unistd.h>
+
+int test_pmu_utils()
+{
+  pmu_init();
+  register uint64_t val_s, val_e;
+  asm volatile(
+    "fence\n\t"
+    "rdcycle %0\n\t"
+    "fence\n\t"
+    : "=r"(val_s)
+    :
+    : "memory"
+  );
+  for (int i = 0; i < 10; i++) {
+    asm volatile("nop\n\t");
+  }
+  asm volatile(
+    "fence\n\t"
+    "rdcycle %0\n\t"
+    "fence\n\t"
+    : "=r"(val_e)
+    :
+    : "memory"
+  );
+  printf("Start count: %lu\n", val_s);
+  printf("End count: %lu\n", val_e);
+  printf("Delta: %lu\n", val_e - val_s);
+  pmu_deinit();
+  return 0;
+}
+
+int test_pref()
+{
+  perf_init();
+
+  long long start_count, end_count;
+  read(perf_fd, &start_count, sizeof(long long));
+
+  read(perf_fd, &end_count, sizeof(long long));
+  printf("Start count: %lld\n", start_count);
+  printf("End count: %lld\n", end_count);
+  printf("Delta: %lld\n", end_count - start_count);
+
+  perf_deinit();
+  return 0;
+}
 
 int main(int argc, char **argv)
 {
-  int n;
-  if (argc > 1)
-  {
-    n = strtoll(argv[1], NULL, 0);
-  }
-  else
-  {
-    n = 1000;
-  }
-
-  perf_init();
-
-  long long start_time, end_time;
-  long long start_cycle, end_cycle;
-
-  asm volatile("rdtime %0" : "=r"(start_time)::);
-  asm volatile("rdcycle %0" : "=r"(start_cycle)::);
-  asm volatile("csrr %0, cycle" : "=r"(start_cycle));
-
-  for (volatile int i = 0; i < n; i++)
-  {
-    asm volatile("nop");
-  }
-  asm volatile("rdcycle %0" : "=r"(end_cycle)::);
-  asm volatile("rdtime %0" : "=r"(end_time)::);
-
-  printf("start cycle: %llu\n", start_cycle);
-  printf("  end cycle: %llu\n", end_cycle);
-  printf("used cycles: %lld\n", end_cycle - start_cycle);
-
-  printf("start time: %lld\n", start_time);
-  printf("  end time: %lld\n", end_time);
-  printf("used times: %lld\n", end_time - start_time);
+  printf("Testing PMU utils:\n");
+  test_pmu_utils();
+  printf("Testing perf event:\n");
+  test_pref();
 }

@@ -6,8 +6,8 @@ int main()
     uint64_t val_s, val_e;
     pmu_init();
     asm volatile(
-        "isb\n\tdsb sy\n\t"
-        "mrs %0, PMCCNTR_EL0\n\t"
+        "fence\n\t"
+        "rdcycle %0\n\t"
         : "=r"(val_s)
         :
         : "memory");
@@ -17,8 +17,8 @@ int main()
         asm volatile("nop");
     }
     asm volatile(
-        "isb\n\tdsb sy\n\t"
-        "mrs %0, PMCCNTR_EL0\n\t"
+        "fence\n\t"
+        "rdcycle %0\n\t"
         : "=r"(val_e)
         :
         : "memory");
