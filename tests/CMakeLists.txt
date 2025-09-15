@@ -10,6 +10,9 @@ message( STATUS "Architecture: ${CMAKE_SYSTEM_PROCESSOR}" )
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../header)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libpmu)
 
+include(CTest)
+enable_testing()
+
 if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
     set (SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/x86_64)
     add_executable(test_all ${SRC_DIR}/all.c ${LIB_PMU})
@@ -26,13 +29,12 @@ if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
         COMMAND taskset -c 0 sudo ./test_set_pmu
         COMMAND taskset -c 0 sudo ./test_all
     )
-elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64")
+elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
     set (SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/aarch64)
     add_executable(test_header ${SRC_DIR}/header.c)
-    add_custom_target(tests
-        DEPENDS test_header
-        COMMAND taskset -c 0 sudo ./test_header
-    )
+    add_executable(test_basic ${SRC_DIR}/basic.c)
+    add_test(NAME test_header COMMAND taskset -c 0 ./test_header)
+    add_test(NAME test_basic COMMAND taskset -c 0 ./test_basic)
 elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "riscv64")
     set (SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/riscv64)
     add_executable(test_perf ${SRC_DIR}/perf.c)

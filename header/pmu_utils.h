@@ -13,6 +13,8 @@
 #include <sys/ioctl.h>
 #include <linux/perf_event.h>
 
+#define PMU_DEVICE_PATH "/dev/pmu_utils"
+
 enum PMU_CPU_Vendor
 {
     CPU_VENDER_UNCHECK,
@@ -97,24 +99,66 @@ typedef struct PMU_AMD_EVENT_STRUCT
     uint64_t hg_only;
 } PMU_EVENT_AMD;
 
-static size_t perf_fd;
+static size_t pmu_fd = -1;
 
-void perf_init()
+int pmu_init()
 {
-    static struct perf_event_attr attr;
-    attr.type = PERF_TYPE_HARDWARE;
-    attr.config = PERF_COUNT_HW_CPU_CYCLES;
-    attr.size = sizeof(attr);
-    attr.exclude_kernel = 1;
-    attr.exclude_hv = 1;
+    pmu_fd = open(PMU_DEVICE_PATH, O_RDONLY);
+    if (pmu_fd < 0)
+    {
+        fprintf(stderr, "Error opening %s\n", PMU_DEVICE_PATH);
+        return -1;
+    }
+    ioctl(pmu_fd, 0, 0);
+    close(pmu_fd);
+    return 0;
+}
+
+int pmu_deinit()
+{
+    return 0;
+}
+
+static size_t perf_fd = -1;
+
+int perf_init()
+{
+    // https://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    struct perf_event_attr pe;
+    memset(&pe, 0, sizeof(struct perf_event_attr));
+    pe.type = PERF_TYPE_HARDWARE;
+    pe.size = sizeof(struct perf_event_attr);
+    pe.config = PERF_COUNT_HW_CPU_CYCLES;
+    pe.disabled = 1;
+    pe.exclude_kernel = 1;
+    pe.exclude_hv = 1; // Don't count hypervisor events.
 #if !defined(__i386__)
-    attr.exclude_callchain_kernel = 1;
+    pe.exclude_callchain_kernel = 1;
 #endif
 
-    perf_fd = syscall(__NR_perf_event_open, &attr, 0, -1, -1, 0);
-    assert(perf_fd >= 0);
-
+    pid_t pid = 0;     // Measure current process
+    int cpu = -1;      // Measure on any CPU
+    int group_fd = -1; // This is the group leader
+    unsigned long flags = 0;
+    perf_fd = syscall(SYS_perf_event_open, &pe, pid, cpu, group_fd, flags);
+    if (perf_fd == -1)
+    {
+        fprintf(stderr, "Error opening leader %llx\n", pe.config);
+        return -1;
+    }
     ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
+    ioctl(perf_fd, PERF_EVENT_IOC_ENABLE, 0);
+    return 0;
+}
+
+int perf_deinit()
+{
+    if (close(perf_fd) == -1)
+    {
+        fprintf(stderr, "Error closing fd\n");
+        return -1;
+    }
+    return 0;
 }
 
 void write_to_x86_perf_eventi(int msr_fd, int i, uint64_t val)

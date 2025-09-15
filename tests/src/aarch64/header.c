@@ -2,35 +2,61 @@
 #include <pmu_utils.h>
 #include <cache_utils.h>
 
+#include <string.h>
+#include <linux/perf_event.h>
+#include <sys/ioctl.h>
+
+int test_pmu_utils()
+{
+    pmu_init();
+    register uint64_t val_s, val_e;
+    asm volatile(
+        "isb\n\t"
+        "dsb sy\n\t"
+        "mrs %0, PMCCNTR_EL0\n\t"
+        "isb\n\t"
+        "dsb sy\n\t"
+        : "=r"(val_s)
+        :
+        : "memory");
+
+    asm volatile(
+        "isb\n\t"
+        "dsb sy\n\t"
+        "mrs %0, PMCCNTR_EL0\n\t"
+        "isb\n\t"
+        "dsb sy\n\t"
+        : "=r"(val_e)
+        :
+        : "memory");
+    printf("Start count: %lu\n", val_s);
+    printf("End count: %lu\n", val_e);
+    printf("Delta: %lu\n", val_e - val_s);
+    pmu_deinit();
+    return 0;
+}
+
+int test_pref()
+{
+    perf_init();
+
+    long long start_count, end_count;
+    read(perf_fd, &start_count, sizeof(long long));
+
+    read(perf_fd, &end_count, sizeof(long long));
+    printf("Start count: %lld\n", start_count);
+    printf("End count: %lld\n", end_count);
+    printf("Delta: %lld\n", end_count - start_count);
+
+    perf_deinit();
+    return 0;
+}
+
 int main(int argc, char const *argv[])
 {
-    cache_init();
-    // for ARM Neoverse N2
-    // 0x01, L1I_CACHE_REFILL, L1 instruction cache refill
-    // 0x14, L1I_CACHE, Level 1 instruction cache access
-    // 0x03, L1D_CACHE_REFILL, L1 data cache refill
-    // 0x04, L1D_CACHE, L1 data cache access
-    uint64_t evet_code[2] = {0x03, 0x04};
-    uint64_t pmu_values[2];
-    pmu_set_event(0x0, NULL, evet_code[0], 0);
-    pmu_set_event(0x0, NULL, evet_code[0], 1);
-    flush(mem);
-
-    pmu_values[0] = pmu_get_rdpmc(0);
-    pmu_values[1] = pmu_get_rdpmc(1);
-    for (int i = 0; i < 1000; i++)
-    {
-        if (i % 10 == 0)
-        {
-            flush(mem);
-        }
-        mfence();
-        maccess(mem);
-    }
-    pmu_values[0] = pmu_get_rdpmc(0) - pmu_values[0];
-    pmu_values[1] = pmu_get_rdpmc(1) - pmu_values[1];
-    printf("pmu_values[0]: %lu\n", pmu_values[0]);
-    printf("pmu_values[1]: %lu\n", pmu_values[1]);
-    assert((pmu_values[0] + pmu_values[1]) != 0);
+    printf("Testing PMU utils:\n");
+    test_pmu_utils();
+    printf("Testing perf event:\n");
+    test_pref();
     return 0;
 }

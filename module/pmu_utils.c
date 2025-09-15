@@ -1,17 +1,17 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/miscdevice.h>
 
 #if defined(__x86_64__)
 #include <linux/smp.h>
 #include <linux/version.h>
 #endif
 
+#define PMU_DEVICE_NAME "pmu_utils"
+#define PMU_DEVICE_PATH "/dev/" PMU_DEVICE_NAME
+
 #ifndef NULL
 #define NULL ((void *)0)
-#endif
-
-#ifndef KERN_INFO
-#define KERN_INFO "[KERN_INFO] "
 #endif
 
 typedef unsigned long long uint64_t;
@@ -30,22 +30,22 @@ static void print_msr(void)
     // Read back CR4 to check the bit.
     __asm__("\t mov %%cr4,%0"
             : "=r"(output));
-    printk(KERN_INFO "%llu", output);
+    pr_info("%llu", output);
 #elif defined(__aarch64__) || defined(__arm__)
     asm volatile("mrs %0, pmintenclr_el1" : "=r"(output));
-    printk(KERN_INFO "pmintenclr_el1:0x%llx", output);
+    pr_info("pmintenclr_el1:0x%llx", output);
     asm volatile("mrs %0, pmcntenset_el0" : "=r"(output));
-    printk(KERN_INFO "pmcntenset_el0:0x%llx", output);
+    pr_info("pmcntenset_el0:0x%llx", output);
     asm volatile("mrs %0, pmuserenr_el0" : "=r"(output));
-    printk(KERN_INFO "pmuserenr_el0:0x%llx", output);
+    pr_info("pmuserenr_el0:0x%llx", output);
     asm volatile("mrs %0, pmcr_el0" : "=r"(output));
-    printk(KERN_INFO "pmcr_el0:0x%llx", output);
+    pr_info("pmcr_el0:0x%llx", output);
     asm volatile("mrs %0, pmccfiltr_el0" : "=r"(output));
-    printk(KERN_INFO "pmccfiltr_el0:0x%llx", output);
+    pr_info("pmccfiltr_el0:0x%llx", output);
 #elif defined(__riscv)
-    printk(KERN_INFO "Not implemented for riscv");
+    pr_info("Not implemented for riscv");
 #else
-    printk(KERN_INFO "Not implemented for unknown architecture");
+    pr_info("Not implemented for unknown architecture");
 #endif
 }
 
@@ -68,7 +68,6 @@ static void enable_pmu(void *info)
         "wbinvd\n\t"
         "pop    %rax");
     // Check which CPU we are on:
-    printk(KERN_INFO "Ran on Processor %d", smp_processor_id());
 #elif defined(__aarch64__) || defined(__arm__)
     uint64_t val;
     /* Disable counter overflow interrupt */
@@ -91,13 +90,12 @@ static void enable_pmu(void *info)
 
     val = BIT(27);
     asm volatile("msr pmccfiltr_el0, %0" : : "r"(val));
-
-    printk(KERN_INFO "enable finished: cpu%d", smp_processor_id());
 #elif defined(__riscv)
-    printk(KERN_INFO "Not implemented for riscv");
+    asm volatile("csrsi mcounteren, 0x7");
 #else
-    printk(KERN_INFO "Not implemented for unknown architecture");
+    pr_info("Not implemented for unknown architecture");
 #endif
+    pr_info("Ran on Processor %d", smp_processor_id());
     print_msr();
 }
 
@@ -118,7 +116,7 @@ static void disable_pmu(void *info)
         "wbinvd\n\t"
         "pop    %rbx\n\t"
         "pop    %rax\n\t");
-    printk(KERN_INFO "Ran on Processor %d", smp_processor_id());
+    pr_info("Ran on Processor %d", smp_processor_id());
 #elif defined(__aarch64__) || defined(__arm__)
     uint64_t val;
     /* Disable all counters */
@@ -128,24 +126,62 @@ static void disable_pmu(void *info)
     val &= ~(1);
     asm volatile("msr pmuserenr_el0, %0" : : "r"(val));
 #elif defined(__riscv)
-    printk(KERN_INFO "Not implemented for riscv");
+    pr_info("Not implemented for riscv");
 #else
-    printk(KERN_INFO "Not implemented for unknown architecture");
+    pr_info("Not implemented for unknown architecture");
 #endif
     print_msr();
 }
 
+static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
+  switch (ioctl_num) {
+    default:
+      enable_pmu(NULL);
+      return 0;
+  }
+}
+
+static int device_open(struct inode *inode, struct file *file) {
+  return 0;
+}
+
+static int device_release(struct inode *inode, struct file *file) {
+  return 0;
+}
+
+static struct file_operations f_ops = {.owner = THIS_MODULE,
+                                       .unlocked_ioctl = device_ioctl,
+                                       .open = device_open,
+                                       .release = device_release};
+
+static struct miscdevice misc_dev = {
+    .minor = MISC_DYNAMIC_MINOR,
+    .name = PMU_DEVICE_NAME,
+    .fops = &f_ops,
+    .mode = S_IRWXUGO,
+};
+
 int pmu_driver_init(void)
 {
+    int r = 0;
     on_each_cpu(enable_pmu, NULL, 1);
-    printk("Enable pmu\n");
+
+    r = misc_register(&misc_dev);
+    if (r != 0) {
+        pr_alert("Failed registering device with %d\n", r);
+        return -ENXIO;
+    }
+
+    pr_info("Loaded pmu_utils.\n");
     return 0;
 }
 
 void pmu_driver_exit(void)
 {
     on_each_cpu(disable_pmu, NULL, 1);
-    printk("Disable pmu, bye, kernel!\n");
+    misc_deregister(&misc_dev);
+
+    pr_info("Removed pmu_utils, bye~, kernel.\n");
 }
 
 module_init(pmu_driver_init);

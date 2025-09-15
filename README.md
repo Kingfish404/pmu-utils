@@ -70,20 +70,7 @@ end_pmc = pmu_get_rdpmc(pmc_id); // read PMC[pmc_id]
 
 ### For ARM64 (aarch64) chips
 
-```c
-uint64_t pmc_id0 = 0, pmc_id1 = 1;
-pmu_set_event(0x0, NULL, evet_code[0], pmc_id0);
-pmu_set_event(0x0, NULL, evet_code[0], pmc_id1);
-memset(mem, 0, 4096);
-
-pmu_values[0] = pmu_get_rdpmc(0);
-pmu_values[1] = pmu_get_rdpmc(1);
-/*
-code that you want to measure
-*/
-pmu_values[0] = pmu_get_rdpmc(0) - pmu_values[0];
-pmu_values[1] = pmu_get_rdpmc(1) - pmu_values[1];
-```
+See [tests/src/aarch64/basic.c](tests/src/aarch64/basic.c) for more details.
 
 ### For RISC-V (riscv) chips
 
