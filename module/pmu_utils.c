@@ -46,6 +46,14 @@ static void print_msr(void)
     pr_info("pmcr_el0:0x%llx", output);
     asm volatile("mrs %0, pmccfiltr_el0" : "=r"(output));
     pr_info("pmccfiltr_el0:0x%llx", output);
+    // https://developer.arm.com/documentation/ddi0601/2025-06/AArch64-Registers/CCSIDR-EL1--Current-Cache-Size-ID-Register
+    asm volatile("mrs %0, CCSIDR_EL1" : "=r"(output));
+    pr_info("CCSIDR_EL1:0x%llx", output);
+    int num_sets = ((output >> 32) & 0xffffff) + 1;
+    int associativity = ((output >> 3) & 0x1fffff) + 1;
+    int line_size = (output & 0x7) + 4;
+    pr_info("Cache Sets: %d, Associativity: %d, Line Size: %d\n",
+            num_sets, associativity, 1 << line_size);
 #elif defined(__riscv)
     pr_info("Not implemented for riscv");
 #else
@@ -143,20 +151,24 @@ static void disable_pmu(void *info)
     print_msr();
 }
 
-static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
-  switch (ioctl_num) {
+static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param)
+{
+    switch (ioctl_num)
+    {
     default:
-      enable_pmu(NULL);
-      return 0;
-  }
+        enable_pmu(NULL);
+        return 0;
+    }
 }
 
-static int device_open(struct inode *inode, struct file *file) {
-  return 0;
+static int device_open(struct inode *inode, struct file *file)
+{
+    return 0;
 }
 
-static int device_release(struct inode *inode, struct file *file) {
-  return 0;
+static int device_release(struct inode *inode, struct file *file)
+{
+    return 0;
 }
 
 static struct file_operations f_ops = {.owner = THIS_MODULE,
@@ -177,7 +189,8 @@ int pmu_driver_init(void)
     on_each_cpu(enable_pmu, NULL, 1);
 
     r = misc_register(&misc_dev);
-    if (r != 0) {
+    if (r != 0)
+    {
         pr_alert("Failed registering device with %d\n", r);
         return -ENXIO;
     }
