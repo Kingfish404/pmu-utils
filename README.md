@@ -29,7 +29,13 @@ sudo modprobe msr   # load msr module
 # For RISC-V or ARM chips with linux kernel version >= 6.6, enable userspace access to perf
 echo 1 | sudo tee /proc/sys/kernel/perf_user_access
 # https://github.com/torvalds/linux/blob/master/drivers/perf/riscv_pmu_sbi.c
+```
 
+## Script Utils
+
+Change the directory to `scripts` and run `*utils.py` for your architecture.
+
+```shell
 # build the PMU Event Header for x86-64 chips (for `ia64` and `amd64` architectures), or for ARM chips
 cd scripts
 python3 pmu_init.py
@@ -38,6 +44,12 @@ python3 pmu_init.py --hybridcore
 # equal to `python3 pmu_intel_utils.py --hybridcore`
 # then you could see the PMU header: `ia64_pmu_event.h`, `amd64_pmu_event.h`, or `arm_pmu_event.h`
 # just include the header in your c or c++ project
+```
+
+Yet another way to get the PMU event header is to use `perf` tool.
+
+```shell
+sudo perf list -j > this-cpu-pmu-events.json
 ```
 
 ## Using the library:  
@@ -68,10 +80,6 @@ Seen in `tests` directory.
 ```shell
 make test test_verbose
 ```
-
-## Script Utils
-
-Change the directory to `scripts` and run `*utils.py` for your architecture.
 
 ## References
 - [Intel® 64 and IA-32 Architectures Software Developer Manuals](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
