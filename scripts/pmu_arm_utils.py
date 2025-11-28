@@ -33,7 +33,15 @@ def export_c_header(pmu_dict):
         pmu_event = pmu_dict[key]
         event_name = pmu_event["EventName"]
         pmu_events.append(
-            PMUEvent(hex(key), event_name, pmu_event["PublicDescription"])
+            PMUEvent(
+                hex(key),
+                event_name,
+                (
+                    pmu_event["PublicDescription"]
+                    if "PublicDescription" in pmu_event
+                    else pmu_event.get("BriefDescription", "")
+                ),
+            )
         )
 
     export_header(pmu_events, "arm_pmu_event.h", "ARM")

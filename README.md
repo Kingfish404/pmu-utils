@@ -32,10 +32,10 @@ echo 1 | sudo tee /proc/sys/kernel/perf_user_access
 
 # build the PMU Event Header for x86-64 chips (for `ia64` and `amd64` architectures), or for ARM chips
 cd scripts
-python3 pmu_intel_utils.py # for x86-64 ia64 chips
-python3 pmu_intel_utils.py --hybridcore # if chips have hybrid core
-python3 pmu_amd_utils.py   # for x86-64 amd64 chips
-python3 pmu_arm_utils.py   # for ARM chips
+python3 pmu_init.py
+# or for intel chips with hybrid core
+python3 pmu_init.py --hybridcore
+# equal to `python3 pmu_intel_utils.py --hybridcore`
 # then you could see the PMU header: `ia64_pmu_event.h`, `amd64_pmu_event.h`, or `arm_pmu_event.h`
 # just include the header in your c or c++ project
 ```

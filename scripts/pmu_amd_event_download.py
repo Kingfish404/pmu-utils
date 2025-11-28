@@ -1,9 +1,7 @@
-import re
 import os
 import csv
 import datetime
 import json
-import platform
 from program_utils import getfile, get_cpustr, pmu_events_filename, run_command
 
 urlpath = "https://raw.githubusercontent.com/torvalds/linux/master/tools/perf/pmu-events/arch/x86/"

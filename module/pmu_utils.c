@@ -29,7 +29,10 @@ typedef unsigned long long uint64_t;
  */
 static void print_msr(void)
 {
-    uint64_t output;
+    uint64_t output = 0;
+    int num_sets = 0;
+    int associativity = 0;
+    int line_size = 0;
 #if defined(__x86_64__) || defined(__amd64__) || defined(__i386__)
     // Read back CR4 to check the bit.
     __asm__("\t mov %%cr4,%0"
@@ -49,9 +52,9 @@ static void print_msr(void)
     // https://developer.arm.com/documentation/ddi0601/2025-06/AArch64-Registers/CCSIDR-EL1--Current-Cache-Size-ID-Register
     asm volatile("mrs %0, CCSIDR_EL1" : "=r"(output));
     pr_info("CCSIDR_EL1:0x%llx", output);
-    int num_sets = ((output >> 32) & 0xffffff) + 1;
-    int associativity = ((output >> 3) & 0x1fffff) + 1;
-    int line_size = (output & 0x7) + 4;
+    num_sets = ((output >> 32) & 0xffffff) + 1;
+    associativity = ((output >> 3) & 0x1fffff) + 1;
+    line_size = (output & 0x7) + 4;
     pr_info("Cache Sets: %d, Associativity: %d, Line Size: %d\n",
             num_sets, associativity, 1 << line_size);
 #elif defined(__riscv)
@@ -182,6 +185,9 @@ static struct miscdevice misc_dev = {
     .fops = &f_ops,
     .mode = S_IRWXUGO,
 };
+
+int pmu_driver_init(void);
+void pmu_driver_exit(void);
 
 int pmu_driver_init(void)
 {

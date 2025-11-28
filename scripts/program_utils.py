@@ -4,8 +4,9 @@ from urllib.request import urlopen
 from typing import List
 
 NUM_TRIES = 3
-pmu_events_filename = "this-cpu-pmu-events.json"
-header_path = "../header/"
+this_dir = os.path.dirname(os.path.abspath(__file__))
+pmu_events_filename = os.path.join(this_dir, "this-cpu-pmu-events.json")
+header_path = os.path.join(this_dir, "..", "header")
 
 
 class PMUEvent:

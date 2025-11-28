@@ -1,6 +1,5 @@
 import sys
 import re
-from urllib.request import urlopen
 from urllib.error import URLError
 import os
 import string
