@@ -22,7 +22,16 @@ def get_doc_pmu_dict():
     with open(pmu_events_filename, "r+") as f:
         pmu_events = json.load(f)
         for idx, event in enumerate(pmu_events):
-            hexcode = event_to_hexcode(event)
+            if event.get("BriefDescription") == None:
+                continue
+            hexcode = 0
+            if event.get("Encoding") != None:
+                # pmu event from `perf list -j > this-cpu-pmu-events.json`
+                encoding = event["Encoding"]
+                hexcode = encoding.split("event=")[1].split("/")[0]
+                hexcode = int(hexcode, 16)
+            else:
+                hexcode = event_to_hexcode(event)
             pmu_umask_event[hexcode] = event
     return pmu_umask_event
 
